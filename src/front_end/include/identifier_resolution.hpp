@@ -1,0 +1,7 @@
+#ifndef C4C_IDENTIFIER_RESOLUTION_H
+#define C4C_IDENTIFIER_RESOLUTION_H
+
+
+
+
+#endif
