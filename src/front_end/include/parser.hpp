@@ -674,7 +674,7 @@ public:
 				}
 				else
 				{
-					fatal("unknown statement " + token.get_type());
+					fatal("unknown statement " + token.get_type() + "  " + token.string);
 				}
 				break;
 			}

@@ -114,6 +114,11 @@ public:
                 resolve_return_stmt((ASTReturnStmt *)stmt->stmt,ident_map);
 				break;
 			}
+            case ASTStatementType::IF:
+			{
+                resolve_if_stmt((ASTIfStmt *)stmt->stmt,ident_map);
+				break;
+			}
             case ASTStatementType::VARDECL:
 			{
                 resolve_vardecl_stmt((ASTVarDecl *)stmt->stmt,ident_map);
@@ -149,6 +154,33 @@ public:
             decl->ident = tmp_name;
         }
     }
+
+
+    
+
+    void resolve_if_stmt(ASTIfStmt *stmt,Map *ident_map)
+    {
+        resolve_expr(stmt->expr,ident_map);
+        resolve_block_stmt(stmt->block,ident_map);
+
+        for(ASTIfElifBlock *elif_block : stmt->elif_blocks)
+        {
+            if (elif_block == nullptr)
+            {
+                continue;
+            }
+
+            resolve_expr(elif_block->expr,ident_map);
+            resolve_block_stmt(elif_block->block,ident_map);
+
+        }
+
+        if(stmt->else_block != nullptr)
+        {
+            resolve_block_stmt(stmt->else_block->block,ident_map);
+        }
+    }
+
 
 
     void resolve_return_stmt(ASTReturnStmt *stmt,Map *ident_map)

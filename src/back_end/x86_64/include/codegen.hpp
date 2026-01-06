@@ -163,7 +163,7 @@ public:
 
 	void gen_return_inst(ASMRetInst *inst)
 	{
-		write_body("\tret");
+		write_body("\tret\n");
 	}
 	
 	void gen_mov_inst(ASMMovInst *inst)

@@ -217,6 +217,10 @@ private:
 		{
 			add_token(TokenType::TOKEN_KEYWORD_CONTINUE,buf);
 		}
+		else if (match_keyword(buf,"else"))
+		{
+			add_token(TokenType::TOKEN_KEYWORD_ELSE,buf);
+		}
 		else if (match_keyword(buf,"elif"))
 		{
 			add_token(TokenType::TOKEN_KEYWORD_ELIF,buf);

@@ -100,7 +100,7 @@ public:
 			}
 			case ASTStatementType::IF:
 			{
-				convert_if_stmt((ASTReturnStmt *)stmt->stmt);
+				convert_if_stmt((ASTIfStmt *)stmt->stmt);
 				break;
 			}
 			case ASTStatementType::VARDECL:
@@ -114,6 +114,75 @@ public:
 				break;
 			}
 		}
+	}
+
+	void convert_if_stmt(ASTIfStmt *stmt)
+	{
+		std::string end_label_name = make_label();
+		std::string label_name = make_label();
+		
+		TACValue *tac_expr = convert_expr(stmt->expr);
+		
+		void *mem = alloc(sizeof(TACJmpIfZeroInst));
+		TACJmpIfZeroInst *tac_jz = new(mem) TACJmpIfZeroInst(tac_expr,label_name);
+
+		mem = alloc(sizeof(TACInstruction));
+		this->inst->push_back(new(mem) TACInstruction(TACInstructionType::JMP_ZERO,tac_jz));
+
+		convert_block_stmt(stmt->block);
+
+
+		mem = alloc(sizeof(TACLabelInst));
+		TACLabelInst *tac_label = new(mem) TACLabelInst(label_name);
+
+		mem = alloc(sizeof(TACInstruction));
+		this->inst->push_back(new(mem) TACInstruction(TACInstructionType::LABEL,tac_label));
+
+
+
+		for(ASTIfElifBlock *elif_block : stmt->elif_blocks)
+        {
+            if (elif_block == nullptr)
+            {
+                continue;
+            }
+
+			tac_expr = convert_expr(elif_block->expr);
+
+			label_name = make_label();
+			
+			void *mem = alloc(sizeof(TACJmpIfZeroInst));
+			TACJmpIfZeroInst *tac_jz = new(mem) TACJmpIfZeroInst(tac_expr,label_name);
+
+			convert_block_stmt(elif_block->block);
+
+
+			mem = alloc(sizeof(TACJmpInst));
+			TACJmpInst *tac_jmp = new(mem) TACJmpInst(end_label_name);
+
+			mem = alloc(sizeof(TACInstruction));
+			this->inst->push_back(new(mem) TACInstruction(TACInstructionType::JMP,tac_jmp));
+
+
+			mem = alloc(sizeof(TACLabelInst));
+			tac_label = new(mem) TACLabelInst(label_name);
+
+			mem = alloc(sizeof(TACInstruction));
+			this->inst->push_back(new(mem) TACInstruction(TACInstructionType::LABEL,tac_label));
+
+		}
+
+		if (stmt->else_block != nullptr)
+		{
+			convert_block_stmt(stmt->else_block->block);
+		}
+
+		mem = alloc(sizeof(TACLabelInst));
+		tac_label = new(mem) TACLabelInst(end_label_name);
+
+		mem = alloc(sizeof(TACInstruction));
+		this->inst->push_back(new(mem) TACInstruction(TACInstructionType::LABEL,tac_label));
+
 	}
 
 	void convert_vardecl_stmt(ASTVarDecl *stmt)
