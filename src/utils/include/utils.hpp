@@ -3,6 +3,7 @@
 
 
 #include <string>
+#include <string.h>
 #include <iostream>
 #include <vector>
 #include <fstream>
@@ -11,6 +12,7 @@
 #include <optional>
 #include <cmath>
 #include <algorithm>
+#include <unordered_map>
 
 #ifndef DEBUG_PRINT
 #define DEBUG_PRINT(x,y) std::cout << (x) << (y) << std::endl

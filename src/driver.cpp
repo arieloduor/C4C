@@ -1,6 +1,7 @@
 #include "front_end/include/file_to_string.hpp"
 #include "front_end/include/string_to_file.hpp"
 #include "front_end/include/lexer.hpp"
+#include "front_end/include/preprocessor.hpp"
 #include "front_end/include/parser.hpp"
 #include "front_end/include/identifier_resolution.hpp"
 #include "front_end/include/type_checking.hpp"
@@ -26,7 +27,11 @@ int main(int argc,char *argv[])
 	std::string file_contents = fs.read();
 	//DEBUG_PRINT(file_contents,"");
 
-	Lexer lexer(file_name,file_contents);
+	Preprocessor preprocessor(file_name, file_contents);
+	std::string processed_output = preprocessor.run();
+
+	DEBUG_PRINT("processed output is: ", processed_output);
+	Lexer lexer(file_name,processed_output);
 	std::vector<Tokens> tokens = lexer.scan_tokens();
 	//lexer.print();
 
