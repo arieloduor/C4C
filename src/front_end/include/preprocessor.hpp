@@ -1,3 +1,25 @@
+/****************************************************************************************************\
+ * FILE: Preprocessor.hpp                                                                           *
+ * AUTHOR: Michael Kamau                                                                            *
+ *                                                                                                  *
+ * PURPOSE: The program removes comments and expands macros, the output is then fed to the          *
+ *          lexer to continue with the lexical analysis                                             *
+ *                                                                                                  *
+ *  USAGE: To instantiate the program call its constructor and pass two arguments:                  *
+ *                -file_name: the name of the file being preprocessed                               *
+ *                -file_source: the contents of the file                                            *
+ *                                                                                                  *
+ *                 `Preprocessor p(file_name, file_source);`                                        *
+ *                                                                                                  *
+ *                  to run the program,                                                             *
+ *                  `p.run()`                                                                       *
+ *                                                                                                  *
+ ****************************************************************************************************/
+
+
+
+
+
 #ifndef C4C_PREPROCESSOR_H
 #define C4C_PREPROCESSOR_H
 
@@ -14,10 +36,10 @@ private:
 
     enum class State
     {
-        NORMAL,
-        LINECOMMENT,
-        HASHCOMMENT,
-        BLOCKCOMMENT,
+        NORMAL,                         /* Just normal characters*/
+        LINECOMMENT,                    /* // */
+        HASHCOMMENT,                    /* # */
+        BLOCKCOMMENT,                   /* /*....*/ 
         DEFINE
     };
 
@@ -54,7 +76,7 @@ public:
     inline bool is_define(size_t curr) const
     {
         if (curr + 8 >= file_source.length())
-            return false; /* avoid overflow */
+            return false;                       /* avoid overflow */
 
         char buff[9];
         for (size_t j = 0; j < 8; j++)
@@ -90,7 +112,7 @@ public:
                 if (c == '@' && is_define(i))
                 {
                     state = State::DEFINE;
-                    i += 7; /* skip "@define" */ 
+                    i += 7;                         /* we add 7 to skip "@define" */ 
                 }
                 else if (c == '/' && is_inline_comment(i))
                 {
@@ -107,6 +129,7 @@ public:
                 else
                 {
                     /* Handle normal code and macro substitution */ 
+
                     if (isalnum(c))
                     {
                         std::string word;
@@ -114,9 +137,10 @@ public:
                         {
                             word += file_source[i++];
                         }
-                        i--; /* adjust because for-loop will increment */
+                        i--;      /* adjust because for loop will increment */
 
                         /* Substitute macros if defined */
+
                         if (defines.count(word))
                             output += defines[word];
                         else
@@ -135,6 +159,7 @@ public:
             case State::HASHCOMMENT:
                 while (i < len && file_source[i] != '\n')
                     i++;
+                output += "\n";  /* We add this because the loop consumes the new line character at the end*/
                 state = State::NORMAL;
                 break;
 
@@ -165,7 +190,7 @@ public:
             }
             break;
 
-            
+
             case State::BLOCKCOMMENT:
                 while (i < len - 1)
                 {
