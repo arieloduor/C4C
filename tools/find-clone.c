@@ -25,6 +25,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 #define MAX_PATH_LENGTH 250 /* The maximum length of a given path in an argument*/
 
@@ -33,6 +34,23 @@ typedef struct
     size_t count;
     int total_lines;
 } DirInventory;
+
+
+/**
+ * A helper function to check if the file is a .hpp file
+ */
+bool is_hpp(char *full_path)
+{
+    char *ext = strrchr(full_path, '.');
+
+    if (!ext)
+        return false;
+    else if (strcmp(ext, ".hpp") == 0)
+        return true;
+    else
+        return false;
+    
+}
 
 /**
  * This function counts the number of lines in a file,
@@ -95,7 +113,7 @@ DirInventory *traverse_and_count_lines(char *path, DirInventory *dir_inventory)
         if (lstat(full_path, &st) == -1)
             continue;
 
-        if (S_ISREG(st.st_mode))
+        if (S_ISREG(st.st_mode) && is_hpp(full_path))
         {
             dir_inventory->count++;
             dir_inventory->total_lines += count_lines_in_file(full_path);
@@ -119,7 +137,8 @@ int main(int argc, char *argv[])
 
     if (argc == 2)
         snprintf(path, sizeof(path), "%s", argv[1]);
-    else if (argc > 2) {
+    else if (argc > 2)
+    {
         fprintf(stderr, "Only one directory supported\n");
         return 1;
     }
