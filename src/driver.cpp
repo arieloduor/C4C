@@ -29,10 +29,12 @@ int main(int argc,char *argv[])
 
 	Preprocessor preprocessor(file_name, file_contents);
 	std::string processed_output = preprocessor.run();
-
-	DEBUG_PRINT("processed output is: ", processed_output);
+	preprocessor.print_errors();
+	
+	// DEBUG_PRINT("processed output is: ", processed_output);
 	Lexer lexer(file_name,processed_output);
 	std::vector<Tokens> tokens = lexer.scan_tokens();
+	lexer.print_errors();
 	//lexer.print();
 
 	{
