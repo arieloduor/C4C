@@ -9,7 +9,7 @@
  *                -file_name: the name of the file being preprocessed                               *
  *                -file_source: the contents of the file                                            *
  *                                                                                                  *
- *                 `Lexer s(file_name, file_source);`   	                                        *
+ *                 `Lexer l(file_name, file_source);`   	                                        *
  *                                                                                                  *
  *                  to run the program,                                                             *
  *                  `l.scan_tokens                                                                  *

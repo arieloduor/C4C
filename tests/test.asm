@@ -7,7 +7,7 @@ main:
 	push rbp
 	mov rbp,rsp
 	sub rsp,8
-	mov DWORD [rbp - 4],21
+	mov DWORD [rbp - 4],69
 	mov eax,DWORD [rbp - 4]
 	mov rsp,rbp
 	pop rbp

@@ -1,9 +1,63 @@
+/****************************************************************************************************\
+ * FILE: Parser.hpp																					*
+ * AUTHOR: Ariel Oduor																				*
+ *																									*
+ * PUROPOSE: This file implements a recursive-descent parser for the C4C language.					*
+ * The parser consumes a linear stream of lexical tokens produced by the lexer						*
+ * and constructs a fully-formed Abstract Syntax Tree (AST) representing the						*
+ * entire source file.																				*
+ * The parser operates in a single pass and uses arena allocation for all AST						*
+ * nodes, ensuring fast allocation and stable memory throughout compilation.						*
+ *																									*
+ * The root of the produced AST is an ASTProgram node, which contains a list						*
+ * of top-level declarations such as functions, variables, and native bindings.						*
+ *																									*
+ * Parse responsibilities are:																		*
+ * - Validate syntactic correctness of the token stream												*
+ * - Enforce grammar structure and operator precedence												*
+ * - Construct AST nodes for declarations, statements, and expressions								*
+ * - Report fatal syntax errors and halt compilation on invalid input								*
+ *																									*
+ *																									*
+ * USAGE: To use the program, first instantiate passing it three arguments:							*
+ * 			-file_name																				*
+ * 			-tokens																					*
+ * 			-&arena																					*
+ * 																									*
+ * 			`Parser parser(file_name,tokens,&arena);`												*
+ * 																									*
+ * 			 then 																					*
+ * 				`parser.parse_program()`															*
+ *																									*
+ * OUTPUT:																							*
+ *   ASTProgram* stored in Parser::program															*
+ *																									*
+ * DESIGN NOTES:																					*
+ * - Parsing strategy: recursive descent + precedence climbing for expressions						*
+ * - Memory management: arena allocation (no manual deallocation)									*
+ * - Grammar style: declaration-based, block-delimited by ':' tokens								*
+ *																									*
+ ****************************************************************************************************/
+
+
 #ifndef C4C_PARSER_H
 #define C4C_PARSER_H
 
 #include "ast.hpp"
 #include "../../utils/include/arena.hpp"
 
+
+
+/**
+ * The Parser class consumes a sequence of lexical tokens and produces an
+ * Abstract Syntax Tree (AST) representing the structure of a source file.
+ *
+ * Parsing is performed using recursive-descent techniques, with explicit
+ * handling of operator precedence for expressions.
+ *
+ * The parser maintains an internal cursor over the token stream and advances
+ * strictly forward; backtracking is not supported.
+ */
 
 class Parser
 {
@@ -25,7 +79,10 @@ public:
 		this->arena = arena;
 	}
 
-
+	/**
+	 * Converts a keyword string into its corresponding token type.
+	 * Returns TOKEN_EOF if the keyword is not recognized.
+	 */
 
 	TokenType keyword_to_token(std::string keyword)
 	{
@@ -101,6 +158,10 @@ public:
 		return TokenType::TOKEN_EOF;
 	}
 
+	/**
+	 * Converts a symbol string into its corresponding token type.
+	 * Returns TOKEN_EOF if the symbol is not recognized.
+	 */
 
 	TokenType symbol_to_token(std::string symbol)
 	{
@@ -197,11 +258,23 @@ public:
 	}
 
 
+	/**
+	 * Converts a raw string into a token type.
+	 * Currently delegates to symbol_to_token().
+	 */
+
 	TokenType string_to_token(std::string string)
 	{
 		return symbol_to_token(string);
 	}
 
+	/**
+	 * Returns a pointer to the current token or a future token without consuming it.
+	 * The function takes one parameter:
+	 * -look_ahead  -> Offset from the current token
+	 * 
+	 * It returns Pointer to token, or nullptr if out of bounds
+	 */
 
 	Tokens *peek(int look_ahead = 0)
 	{
@@ -214,13 +287,21 @@ public:
 	}
 
 
+	/**
+	 * Consumes and returns the current token, advancing the parser cursor.
+	 */
+
 	Tokens consume()
 	{
 		return this->tokens[this->index++];
 	}
 
 
-	bool is_token_type(TokenType type,int look_ahead = 0)
+	/**
+	 * Checks whether the current or lookahead token matches a symbol.
+	 */
+
+	bool is_token_type(TokenType type, int look_ahead = 0)
 	{
 		Tokens *token = peek(look_ahead);
 		if (token == nullptr)
@@ -231,21 +312,40 @@ public:
 	}
 
 
+	/**
+	 * Checks whether the current or lookahead token matches a symbol.
+	 */
+
 	bool is_token(std::string string,int look_ahead = 0)
 	{
 		return is_token_type(string_to_token(string),look_ahead);
 	}
+
+	/**
+	 * Checks whether the current or lookahead token matches a keyword.
+	 */
 
 	bool is_token_string(std::string string,int look_ahead = 0)
 	{
 		return is_token_type(keyword_to_token(string),look_ahead);
 	}
 
+
+	/**
+	 * Reports a fatal parsing error and terminates compilation.
+	 * This function does not return.
+	 */
+
 	void fatal(std::string string)
 	{
 		DEBUG_PANIC(string);
 	}
 
+
+	/**
+	 * Checks whether the current token represents a supported data type.
+	 * More types to be added later
+	 */
 
 	bool match_type()
 	{
@@ -273,6 +373,23 @@ public:
 	}
 
 
+	/**
+	 * Checks whether the token at the lookahead position is similar
+	 * to the one specified
+	 * The function takes three parameters:
+	 * - symbol 	-> The symbol to check
+	 * - string 	->
+	 * - look_ahead -> The number of positions ahead of the index to check,
+	 *   if none is given a default of zero is used
+	 */
+
+	 /********************************************************\
+	  * NOTE: As of the documentation of this function,		 *
+	  * The string parameter is not in use and was probably  *
+	  * used initially but the designer of the program		 *
+	  * found a better way but forgot to remove it			 *
+	 \********************************************************/
+
 	bool is_symbol(std::string symbol,std::string string = "",int look_ahead = 0)
 	{
 		return is_token_type(symbol_to_token(symbol),look_ahead);
@@ -288,8 +405,12 @@ public:
 		fatal("expected " + symbol + " but got " + (*(peek())).get_type() );
 		return false;
 	}
-	
-	
+
+	/**
+	 * Ensures that the current token matches the given symbol.
+	 * Advances the token stream or reports a fatal error.
+	 */
+
 	bool expect_symbol(std::string symbol,std::string string = "")
 	{
 		bool status = false;
@@ -308,6 +429,11 @@ public:
 
 
 
+	/**
+	 * Ensures that the current token matches the given symbol.
+	 * Advances the token stream or reports a fatal error.
+	 */
+
 	bool match_keyword(std::string keyword,std::string string = "")
 	{
 		bool status = false;
@@ -319,6 +445,10 @@ public:
 		return status;
 	}
 
+	/**
+	 * Ensures that the current token matches the given keyword.
+	 * Advances the token stream or reports a fatal error.
+	 */
 
 	bool expect_keyword(std::string keyword,std::string string = "")
 	{
@@ -336,6 +466,9 @@ public:
 		return status;
 	}
 
+	/**
+	 * Ensures that the current token's string matches the expected literal.
+	 */
 
 	bool expect_string_literal(std::string keyword,std::string string = "")
 	{
@@ -354,6 +487,10 @@ public:
 	}
 
 
+	/**
+	 * Checks whether the current token is an indentifier
+	 */
+
 	bool is_identifier()
 	{
 		return is_token_type(TokenType::TOKEN_IDENT);
@@ -361,6 +498,12 @@ public:
 
 
 
+	/**
+	 * This function just wraps the `is_identifier` function,
+	 * if an identifier doesnt match, it calls the fatal function, which in tunr
+	 * halts the program and prints an error message
+	 */
+	
 	bool match_identifier()
 	{
 		if (is_identifier())
@@ -372,16 +515,37 @@ public:
 		return true;
 	}
 
+	/**
+	 * Checks whether the index has reached the end of the token's
+	 * length.
+	 */
+
 	bool is_at_end()
 	{
 		return this->index >= this->tokens_length;
 	}
 
+	/**
+	 * The function uses an arena to allocate memory of
+	 * size `size`.
+	 * The function takes one parameter:
+	 * -size -> the size of memroy to be allocated
+	 */
+
 	void *alloc(int size)
 	{
 		return this->arena->alloc(size);
 	}
-	
+
+	/**
+	 * Parses the entire source file.
+	 *
+	 * Grammar:
+	 *   Program -> Declaration
+	 *
+	 * Produces an ASTProgram node stored in Parser::program.
+	 */
+
 	void parse_program()
 	{
 		void *mem = alloc(sizeof(ASTProgram));
@@ -394,6 +558,16 @@ public:
 		}
 
 	}
+
+	/**
+	 * Parses a single top-level declaration.
+	 *
+	 * Supported declarations:
+	 * - Function declarations
+	 * - Variable declarations
+	 * - Native (extern) declarations
+	 * - enums
+	 */
 
 	ASTDeclaration *parse_decl()
 	{
@@ -481,6 +655,9 @@ public:
 		return decl;
 	}
 
+	/**
+	 * This function parses an enum declaration
+	 */
 	ASTEnumDecl *parse_enum_decl(bool is_public = false)
 	{
 		void *mem = alloc(sizeof(ASTEnumDecl));
@@ -526,6 +703,11 @@ public:
 
 		return decl;
 	}
+
+	/**
+	 * Parses a native declaration block.
+	 * Used to declare externally implemented functions.
+	 */
 	
 	ASTNativeDecl *parse_native_decl()
 	{
@@ -552,6 +734,9 @@ public:
 		return decl;
 	}
 
+	/**
+	 * Parses a native function declaration.
+	 */
 
 	ASTFunctionDeclNative *parse_fn_decl_native()
 	{
@@ -588,6 +773,12 @@ public:
 
 		return decl;
 	}
+
+	/**
+	 * Parses a function declaration.
+	 * The function takes one parameter:
+	 * - is_public -> Indicates whether the function is publicly visible
+	 */
 
 	ASTFunctionDecl *parse_fn_decl(bool is_public = false)
 	{
@@ -637,6 +828,9 @@ public:
 		return decl;
 	}
 
+	/**
+	 * Parses a function argument consisting of a type and identifier.
+	 */
 
 	ASTFunctionArgument *parse_fn_arg()
 	{
@@ -655,6 +849,9 @@ public:
 		return arg;
 	}
 
+	/**
+	 * Parses a type specification, including pointer modifiers.
+	 */
 
 	ASTType *parse_type()
 	{
@@ -705,6 +902,9 @@ public:
 		return type;
 	}
 
+	/**
+	 * Parses a block statement delimited by ':' tokens.
+	 */
 
 	ASTBlockStmt *parse_block_stmt()
 	{
@@ -729,6 +929,9 @@ public:
 		return block;
 	}
 
+	/**
+	 * Parses a single statement within a block.
+	 */
 
 	ASTStatement *parse_stmt()
 	{
@@ -815,6 +1018,10 @@ public:
 		return stmt;
 	}
 
+	/**
+	 * Parses a variable declaration.
+	 */
+
 	ASTVarDecl *parse_vardecl(bool is_public = false,bool is_static = false,bool is_extern = false)
 	{
 		ASTType *type = parse_type();
@@ -865,6 +1072,10 @@ public:
 	}
 
 
+	/**
+	 * Parses an else block
+	 */
+	
 	ASTIfElseBlock *parse_else_block()
 	{
 		expect_keyword("else");
@@ -885,6 +1096,9 @@ public:
 		return else_block;
 	}
 
+	/**
+	 * Parses an if / elif / else statement.
+	 */
 
 	ASTIfStmt *parse_if_stmt()
 	{
@@ -921,6 +1135,10 @@ public:
 	}
 
 
+	/**
+	 * Parses a while statment
+	 */
+	
 	ASTWhileStmt *parse_while_stmt()
 	{
 		void *mem = alloc(sizeof(ASTWhileStmt));
@@ -943,6 +1161,9 @@ public:
 		return stmt;
 	}
 
+	/**
+	 * Parses an infinite loop statement.
+	 */
 
 	ASTWhileStmt *parse_loop_stmt()
 	{
@@ -970,6 +1191,10 @@ public:
 		return stmt;
 	}
 
+	/**
+	 * Parses a break statment
+	 */
+	
 	ASTBreakStmt *parse_break_stmt()
 	{
 		void *mem = alloc(sizeof(ASTBreakStmt));
@@ -979,6 +1204,11 @@ public:
 
 		return stmt;
 	}
+	
+
+	/**
+	 * Parses a continue statment
+	 */
 	
 	ASTContinueStmt *parse_continue_stmt()
 	{
@@ -991,6 +1221,10 @@ public:
 	}
 
 
+	/**
+	 * Parses a return statment
+	 */
+
 	ASTReturnStmt *parse_return_stmt()
 	{
 		expect_keyword("return");
@@ -1001,16 +1235,27 @@ public:
 		return stmt;
 	}
 
+	/**
+	 * Determines whether the current token represents a unary operator.
+	 */
+
 	bool is_unary()
 	{
 		return is_token("-") or is_token("~");
 	}
-	
+
+	/**
+	 * Determines whether the current token represents a binary operator.
+	 */
 
 	bool is_binary()
 	{
 		return is_token("-") or is_token("+") or is_token("*") or is_token("%") or is_token("/") or is_token("<") or is_token(">") or is_token("<=") or is_token(">=") or is_token("||") or is_token("&&")  or is_token("=");
 	}
+
+	/**
+	 * The function returns the assign operator (=)
+	 */
 
 	ASTAssignOperator get_assign_op(Tokens token)
 	{
@@ -1027,6 +1272,10 @@ public:
 	}
 
 	
+	/**
+	 * This function returns the unary operator
+	 */
+
 	ASTUnaryOperator get_unary_op(Tokens token)
 	{
 		switch (token.type)
@@ -1046,6 +1295,11 @@ public:
 		return ASTUnaryOperator::None;
 	}
 
+
+	/**
+	 * This function return the type of binary operation
+	 * represented by the token
+	 */
 
 	ASTBinaryOperator get_binary_op(Tokens token)
 	{
@@ -1111,6 +1365,9 @@ public:
 		return ASTBinaryOperator::None;
 	}
 
+	/**
+	 * Returns the precedence level of the current operator token.
+	 */
 
 	int get_precedence()
 	{
@@ -1141,7 +1398,12 @@ public:
 
 		return -1;
 	}
-	
+
+	/**
+	 * Parses an expression using precedence climbing.
+	 * The function takes one parameter:
+	 * - min_prec -> Minimum operator precedence allowed
+	 */
 
 	ASTExpression *parse_expr(int min_prec)
 	{
@@ -1176,6 +1438,10 @@ public:
 		return lhs;
 	}
 
+	/**
+	 * Parses the smallest unit of an expression (literals, identifiers,
+	 * function calls, unary expressions, or parenthesized expressions).
+	 */
 
 	ASTExpression *parse_factor()
 	{
