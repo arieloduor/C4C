@@ -1156,6 +1156,42 @@ public:
 			mem = alloc(sizeof(ASTExpression));
 			expr = new(mem) ASTExpression(ASTExpressionType::UNARY,expr1);
 		}
+		else if (is_token_type(TokenType::TOKEN_LITERAL_FLOAT))
+		{
+			Tokens token = consume();
+
+			double num = std::stod(token.string);
+
+			if (not std::isfinite(num))
+			{
+				fatal("floating-point constant is not finite");
+			}
+			else if (std::fabs(num) > DBL_MAX)
+			{
+				fatal("floating-point constant is too large (larger than f64)");
+			}
+			else if (std::fabs(num) > FLT_MAX)
+			{
+				// Must be f64
+				void *mem = alloc(sizeof(ASTF64Expr));
+				ASTF64Expr *f64_expr = new(mem) ASTF64Expr(num);
+
+				mem = alloc(sizeof(ASTExpression));
+				expr = new(mem) ASTExpression(ASTExpressionType::F64, f64_expr);
+			}
+			else
+			{
+				// Fits in f32
+				float f32_val = static_cast<float>(num);
+
+				void *mem = alloc(sizeof(ASTF32Expr));
+				ASTF32Expr *f32_expr = new(mem) ASTF32Expr(f32_val);
+
+				mem = alloc(sizeof(ASTExpression));
+				expr = new(mem) ASTExpression(ASTExpressionType::F32, f32_expr);
+			}
+		}
+
 		else if (is_token_string("cast"))
 		{
 			expect_keyword("cast");

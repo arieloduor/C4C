@@ -11,6 +11,10 @@ enum class DataType
     FUNCTION = 1,
     I32,
     I64,
+    U32,
+    U64,
+    F32,
+    F64,
 };
 
 

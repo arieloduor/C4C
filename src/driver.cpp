@@ -48,14 +48,16 @@ int main(int argc,char *argv[])
 
 		IdentifierResolution resolve(file_name,parser.program);
 
+
+		AstToC C(file_name,resolve.program);
+		StringToFile(file_name.substr(0, file_name.length() - 3) + ".c",C.string);
+
+		/*
+
 		TypeChecking type_check(file_name,resolve.program);
 		DEBUG_PRINT("sanity check : ", " after resolve ");
 		
 		LoopLabelling loop_label(file_name,type_check.program,resolve.global_counter);
-
-
-		AstToC C(file_name,loop_label.program);
-		StringToFile(file_name.substr(0, file_name.length() - 3) + ".c",C.string);
 
 		AstToTac tac(file_name,loop_label.program,&arena,loop_label.global_counter,type_check.table);
 
@@ -71,5 +73,6 @@ int main(int argc,char *argv[])
 		Codegen gen(file_name,intel.program);
 		DEBUG_PRINT("sanity check : ", " after codegen");
 		StringToFile(file_name.substr(0, file_name.length() - 3) + ".asm",gen.string);
+		*/
 	}
 }

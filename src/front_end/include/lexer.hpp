@@ -218,12 +218,16 @@ private:
 			if( match_token('.') and is_digit(1) )
 			{
 				if(!this->has_errors)
+				{
 					this->has_errors = true;
+				}
 				
 				add_token(TokenType::TOKEN_ERROR_MALFORMED_NUMBER);
 			}
 			else
+			{
 				add_token(TokenType::TOKEN_LITERAL_FLOAT,buf);
+			}
 		}
 		else
 		{
@@ -402,6 +406,14 @@ private:
 		{
 			//DEBUG_PRINT("fn " ," found");
 			add_token(TokenType::TOKEN_KEYWORD_FN,buf);
+		}
+		else if (match_keyword(buf,"f32"))
+		{
+			add_token(TokenType::TOKEN_KEYWORD_F32,buf);
+		}
+		else if (match_keyword(buf,"f64"))
+		{
+			add_token(TokenType::TOKEN_KEYWORD_F64,buf);
 		}
 		else if (match_keyword(buf,"i8"))
 		{

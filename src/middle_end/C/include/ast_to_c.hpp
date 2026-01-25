@@ -72,6 +72,21 @@ public:
 				write_body("int ");
 				break;
 			}
+			case ASTDataType::I64:
+			{
+				write_body("long int ");
+				break;
+			}
+			case ASTDataType::U32:
+			{
+				write_body("unsigned int ");
+				break;
+			}
+			case ASTDataType::U64:
+			{
+				write_body("unsigned long int ");
+				break;
+			}
 		}
 
 		write_body(decl->ident + "(");
@@ -100,6 +115,16 @@ public:
 					data_type = "long int";
 					break;
 				}
+				case ASTDataType::U32:
+				{
+					data_type = "unsigned int";
+					break;
+				}
+				case ASTDataType::U64:
+				{
+					data_type = "unsigned long int";
+					break;
+				}
 				default:
 				{
 					break;
@@ -108,7 +133,7 @@ public:
 
 			write_body(data_type + " " + arg->ident);
 
-			if(i + 1 == arg_length)
+			if(i++ + 1 >= arg_length)
 			{
 				break;
 			}
@@ -250,6 +275,16 @@ public:
 				data_type = "long int ";
 				break;
 			}
+			case ASTDataType::U32:
+			{
+				data_type = "unsigned int ";
+				break;
+			}
+			case ASTDataType::U64:
+			{
+				data_type = "unsigned long int ";
+				break;
+			}
 			default:
 			{
 				DEBUG_PANIC("tac cast ");
@@ -269,7 +304,7 @@ public:
 		write_body(tab);
 		write_body("return ");
 		convert_expr(stmt->expr);
-		write_body("\n");
+		write_body(";\n");
 	}
 
 
@@ -290,6 +325,16 @@ public:
 			case ASTExpressionType::I64:
 			{
 				convert_i64_expr(expr->expr,expr->data_type);
+				break;
+			}
+			case ASTExpressionType::U32:
+			{
+				convert_u32_expr(expr->expr,expr->data_type);
+				break;
+			}
+			case ASTExpressionType::U64:
+			{
+				convert_u64_expr(expr->expr,expr->data_type);
 				break;
 			}
 			case ASTExpressionType::FUNCTION_CALL:
@@ -328,6 +373,18 @@ public:
 	}
 
 
+	void convert_u64_expr(void *expr,DataType expr_type)
+	{
+		write_body(std::to_string(((ASTU64Expr *)expr)->value));
+	}
+
+
+	void convert_u32_expr(void *expr,DataType expr_type)
+	{
+		write_body(std::to_string(((ASTU32Expr *)expr)->value));
+	}
+
+
 	void convert_i64_expr(void *expr,DataType expr_type)
 	{
 		write_body(std::to_string(((ASTI64Expr *)expr)->value));
@@ -338,27 +395,7 @@ public:
 	{
 		ASTFunctionCallExpr *fn_expr = (ASTFunctionCallExpr *)expr;
 
-		std::string data_type;
-
-		switch(expr_type)
-		{
-			case DataType::I32:
-			{
-				data_type = "int ";
-				break;
-			}
-			case DataType::I64:
-			{
-				data_type = "long int ";
-				break;
-			}
-			default:
-			{
-				break;
-			}
-		}
-
-		
+		write_body(fn_expr->ident + "(");
 
 		int arg_length = fn_expr->args.size();
 		int i = 0;
@@ -366,7 +403,7 @@ public:
 		for ( ASTExpression *arg : fn_expr->args)
 		{
 			convert_expr(arg);
-			if(i + 1 >= arg_length)
+			if(i++ + 1 >= arg_length)
 			{
 				break;
 			}
@@ -411,6 +448,16 @@ public:
 			case ASTDataType::I64:
 			{
 				data_type = "long int";
+				break;
+			}
+			case ASTDataType::U32:
+			{
+				data_type = "unsigned int";
+				break;
+			}
+			case ASTDataType::U64:
+			{
+				data_type = "unsigned long int";
 				break;
 			}
 			default:

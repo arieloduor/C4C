@@ -1,7 +1,9 @@
+unsigned int add(unsigned long int x_c4_tmp.0,unsigned long int y_c4_tmp.1)
+{
+	return x_c4_tmp.0 + y_c4_tmp.1;
+}
 int main()
 {
-    int x = 70 + 56;
-    x = x + x - 10;
-    int y = x - 200;
-    return y + x - y - y;
+	int x_c4_tmp.2 = 21;
+	return add(x_c4_tmp.2,x_c4_tmp.2 + 1);
 }

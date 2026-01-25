@@ -13,6 +13,9 @@
 #include <cmath>
 #include <algorithm>
 #include <unordered_map>
+#include <cfloat>
+#include <cmath>
+
 
 #ifndef DEBUG_PRINT
 #define DEBUG_PRINT(x,y) std::cout << (x) << (y) << std::endl

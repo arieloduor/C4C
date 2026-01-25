@@ -98,6 +98,8 @@ enum class ASTDataType
 	I64,
 	U32,
 	U64,
+	F32,
+	F64,
 };
 
 
@@ -458,6 +460,8 @@ enum class ASTExpressionType
 	CAST,
 	U32,
 	U64,
+	F32,
+	F64,
 };
 
 
@@ -581,6 +585,45 @@ public:
 		this->value = value;
 	}
 };
+
+
+
+
+
+class ASTF32Expr
+{
+public:
+	float value;
+	DataType data_type;
+	void add_data_type(DataType data_type)
+	{
+		this->data_type = data_type;
+	}
+
+	ASTF32Expr(float value)
+	{
+		this->value = value;
+	}
+};
+
+
+class ASTF64Expr
+{
+public:
+	double value;
+	DataType data_type;
+
+	void add_data_type(DataType data_type)
+	{
+		this->data_type = data_type;
+	}
+
+	ASTF64Expr(double value)
+	{
+		this->value = value;
+	}
+};
+
 
 
 
