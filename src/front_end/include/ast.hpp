@@ -96,6 +96,8 @@ enum class ASTDataType
 {
 	I32,
 	I64,
+	U32,
+	U64,
 };
 
 
@@ -454,6 +456,8 @@ enum class ASTExpressionType
 	FUNCTION_CALL,
 	I64,
 	CAST,
+	U32,
+	U64,
 };
 
 
@@ -534,11 +538,51 @@ public:
 		this->data_type = data_type;
 	}
 
-	ASTI64Expr(int value)
+	ASTI64Expr(long int value)
 	{
 		this->value = value;
 	}
 };
+
+
+
+
+
+class ASTU32Expr
+{
+public:
+	unsigned int value;
+	DataType data_type;
+	void add_data_type(DataType data_type)
+	{
+		this->data_type = data_type;
+	}
+
+	ASTU32Expr(unsigned int value)
+	{
+		this->value = value;
+	}
+};
+
+
+class ASTU64Expr
+{
+public:
+	unsigned long int value;
+	DataType data_type;
+
+	void add_data_type(DataType data_type)
+	{
+		this->data_type = data_type;
+	}
+
+	ASTU64Expr(unsigned long int value)
+	{
+		this->value = value;
+	}
+};
+
+
 
 
 class ASTVariableExpr

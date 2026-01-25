@@ -610,6 +610,16 @@ public:
 				data_type = ASTDataType::I64;
 				consume();
 			}
+			else if (is_token_string("u32"))
+			{
+				data_type = ASTDataType::U32;
+				consume();
+			}
+			else if (is_token_string("u64"))
+			{
+				data_type = ASTDataType::U64;
+				consume();
+			}
 			else
 			{
 				DEBUG_PRINT("  parse type : sanity check ",(*(peek())).get_type() + " =>  " + (*(peek())).string);
@@ -1111,12 +1121,18 @@ public:
 		{
 			Tokens token = consume();
 			int num = std::stoi(token.string);
-			if (num > ( std::pow(2,63) - 1))
+			if (num > ( std::pow(2,64)))
 			{
 				fatal("integer constant is too large (larger than 64 bits) ");
 			}
-
-			if (num > (std::pow(2,31) - 1))
+			else if ((num > (std::pow(2,63) - 1)) and (num <= (std::pow(2,64))) )
+			{
+				void *mem = alloc(sizeof(ASTU64Expr));
+				ASTU64Expr *u64_expr = new(mem) ASTU64Expr(num);
+				mem = alloc(sizeof(ASTExpression));
+				expr = new(mem) ASTExpression(ASTExpressionType::U64,u64_expr);
+			}
+			else if (num > (std::pow(2,31) - 1))
 			{
 				void *mem = alloc(sizeof(ASTI64Expr));
 				ASTI64Expr *i64_expr = new(mem) ASTI64Expr(num);
