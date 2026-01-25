@@ -446,7 +446,6 @@ public:
     int get_i32_init(void *expr)
     {
         ASTI32Expr *i32_expr = (ASTI32Expr *)expr;
-        std::cout << " i32 expr : " << i32_expr->value << std::endl;
         return i32_expr->value; 
     }
 
@@ -454,69 +453,157 @@ public:
     int get_i64_init(void *expr)
     {
         ASTI64Expr *i64_expr = (ASTI64Expr *)expr;
-        std::cout << " i32 expr : " << i64_expr->value << std::endl;
         return i64_expr->value; 
     }
 
 
     void check_vardecl_stmt(ASTVarDecl *decl,SymbolTable *symbol_table)
     {
-        if (decl->is_extern)
+        switch(decl->type->type)
         {
-            if(decl->expr != nullptr)
+            case ASTDataType::I32:
             {
-                fatal(" local extern variable declared with an initializer is illegal");
+                DEBUG_PRINT(" vardecl =>  "," i32 ");
+                break;
             }
-
-            if(symbol_table->lookup(decl->ident))
+            case ASTDataType::I64:
             {
-                if(symbol_table->get_type(decl->ident) != DataType::I32)
+                DEBUG_PRINT(" vardecl =>  "," i64 ");
+                break;
+            }
+            default:
+            {
+                DEBUG_PANIC(" the gods have spoken!!");
+                break;
+            }
+        }
+
+        switch (decl->type->type)
+        {
+            case ASTDataType::I32:
+            {
+                if (decl->is_extern)
                 {
-                    fatal("function redeclared as a variable");
+                    if(decl->expr != nullptr)
+                    {
+                        fatal(" local extern variable declared with an initializer is illegal");
+                    }
+
+                    if(symbol_table->lookup(decl->ident))
+                    {
+                        if(symbol_table->get_type(decl->ident) != DataType::I32)
+                        {
+                            fatal("function redeclared as a variable");
+                        }
+                    }
+                    else
+                    {
+                        Symbol symbol(decl->ident,DataType::I32);
+                        symbol.add_global(true);
+                        symbol.add_init(false);
+                        symbol_table->add(decl->ident,symbol);
+                    }
                 }
+                else if(decl->is_static)
+                {
+                    Symbol symbol(decl->ident,DataType::I32);
+                    symbol.add_global(false);
+                    symbol.add_init(false);
+
+                    if (decl->expr == nullptr)
+                    {
+                        symbol.add_init(true);
+                        symbol.add_int_init(0);
+                    }
+                    else if (decl->expr->type == ASTExpressionType::I32)
+                    {
+                        symbol.add_init(true);
+                        symbol.add_int_init(get_i32_init(decl->expr->expr));
+                    }
+                    else
+                    {
+                        fatal(" non-constant initializer used on local static variable");
+                    }
+
+                    symbol_table->add(decl->ident,symbol);
+                }
+
+                else
+                {
+                    symbol_table->add(decl->ident,Symbol(decl->ident,DataType::I32,true));
+
+                    if (decl->expr != nullptr)
+                    {
+                        check_expr(decl->expr,symbol_table);
+                    }
+                }
+                break;
             }
-            else
+            case ASTDataType::I64:
             {
-                Symbol symbol(decl->ident,DataType::I32);
-                symbol.add_global(true);
-                symbol.add_init(false);
-                symbol_table->add(decl->ident,symbol);
+                if (decl->is_extern)
+                {
+                    if(decl->expr != nullptr)
+                    {
+                        fatal(" local extern variable declared with an initializer is illegal");
+                    }
+
+                    if(symbol_table->lookup(decl->ident))
+                    {
+                        if(symbol_table->get_type(decl->ident) != DataType::I64)
+                        {
+                            fatal("function redeclared as a variable");
+                        }
+                    }
+                    else
+                    {
+                        Symbol symbol(decl->ident,DataType::I64);
+                        symbol.add_global(true);
+                        symbol.add_init(false);
+                        symbol_table->add(decl->ident,symbol);
+                    }
+                }
+                else if(decl->is_static)
+                {
+                    Symbol symbol(decl->ident,DataType::I64);
+                    symbol.add_global(false);
+                    symbol.add_init(false);
+
+                    if (decl->expr == nullptr)
+                    {
+                        symbol.add_init(true);
+                        symbol.add_int_init(0);
+                    }
+                    else if (decl->expr->type == ASTExpressionType::I32)
+                    {
+                        symbol.add_init(true);
+                        symbol.add_int_init(get_i32_init(decl->expr->expr));
+                    }
+                    else
+                    {
+                        fatal(" non-constant initializer used on local static variable");
+                    }
+
+                    symbol_table->add(decl->ident,symbol);
+                }
+
+                else
+                {
+                    symbol_table->add(decl->ident,Symbol(decl->ident,DataType::I64,true));
+
+                    if (decl->expr != nullptr)
+                    {
+                        check_expr(decl->expr,symbol_table);
+                    }
+                }
+                break;
+            }
+            default:
+            {
+                DEBUG_PANIC("unsupported type in vardecl ");
+                break;
             }
         }
-        else if(decl->is_static)
-        {
-            Symbol symbol(decl->ident,DataType::I32);
-            symbol.add_global(false);
-            symbol.add_init(false);
-
-            if (decl->expr == nullptr)
-            {
-                symbol.add_init(true);
-                symbol.add_int_init(0);
-            }
-            else if (decl->expr->type == ASTExpressionType::I32)
-            {
-                symbol.add_init(true);
-                symbol.add_int_init(get_i32_init(decl->expr->expr));
-            }
-            else
-            {
-                fatal(" non-constant initializer used on local static variable");
-            }
-
-            symbol_table->add(decl->ident,symbol);
-        }
-
-        else
-        {
-            symbol_table->add(decl->ident,Symbol(decl->ident,DataType::I32,true));
-
-            if (decl->expr != nullptr)
-            {
-                check_expr(decl->expr,symbol_table);
-            }
-        }
-
     }
 
 
@@ -605,6 +692,7 @@ public:
                         break;
                     }
                 }
+                
                 expr->add_data_type(cast_expr->data_type);
                 break;
             }
@@ -657,10 +745,12 @@ public:
                 ASTVariableExpr *var_expr = (ASTVariableExpr *)expr->expr;
                 //fatal(" fatal  -> " + var_expr->ident);
                 std::string name = var_expr->ident;
+                
                 if (symbol_table->lookup(name)  and symbol_table->get_type(name) != DataType::I32  and symbol_table->get_type(name) != DataType::I64)
                 {
                     fatal("function used as variable");    
                 }
+                
 
                 var_expr->add_data_type(symbol_table->get_type(name));
                 expr->add_data_type(var_expr->data_type);

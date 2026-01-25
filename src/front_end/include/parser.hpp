@@ -73,6 +73,14 @@ public:
 		{
 			return TokenType::TOKEN_KEYWORD_I64;
 		}
+		else if (keyword == "u32")
+		{
+			return TokenType::TOKEN_KEYWORD_U32;
+		}
+		else if (keyword == "u64")
+		{
+			return TokenType::TOKEN_KEYWORD_U64;
+		}
 		else if (keyword == "native")
 		{
 			return TokenType::TOKEN_KEYWORD_NATIVE;
@@ -241,6 +249,14 @@ public:
 			return true;
 		}
 		else if (token.type == TokenType::TOKEN_KEYWORD_I64)
+		{
+			return true;
+		}
+		else if (token.type == TokenType::TOKEN_KEYWORD_U32)
+		{
+			return true;
+		}
+		else if (token.type == TokenType::TOKEN_KEYWORD_U64)
 		{
 			return true;
 		}
@@ -589,14 +605,14 @@ public:
 				data_type = ASTDataType::I32;
 				consume();
 			}
-			if (is_token_string("i64"))
+			else if (is_token_string("i64"))
 			{
 				data_type = ASTDataType::I64;
 				consume();
 			}
 			else
 			{
-				DEBUG_PRINT("  sanity check ",(*(peek())).get_type());
+				DEBUG_PRINT("  parse type : sanity check ",(*(peek())).get_type() + " =>  " + (*(peek())).string);
 			}
 
 			type->add_type(data_type);
@@ -1111,7 +1127,6 @@ public:
 			{
 				void *mem = alloc(sizeof(ASTI32Expr));
 				ASTI32Expr *i32_expr = new(mem) ASTI32Expr(num);
-				std::cout << " parser i32_expr : " << i32_expr->value << std::endl;
 				mem = alloc(sizeof(ASTExpression));
 				expr = new(mem) ASTExpression(ASTExpressionType::I32,i32_expr);
 			}

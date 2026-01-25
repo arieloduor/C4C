@@ -10,6 +10,17 @@ class TACFunction;
 class TACInstruction;
 class TACValue;
 
+
+
+
+enum class TACType
+{
+	I32 = 1,
+	I64,
+};
+
+
+
 class TACProgram
 {
 public:
@@ -41,13 +52,27 @@ public:
 	}
 };
 
+
+class TACArgument
+{
+public:
+	std::string ident;
+	TACType type;
+
+	TACArgument(std::string ident,TACType type)
+	{
+		this->ident = ident;
+		this->type = type;
+	}
+};
+
 class TACFunction
 {
 public:
 	bool is_public;
 	std::string ident;
 	std::vector<TACInstruction *>instructions;
-	std::vector<std::string> arguments;
+	std::vector<TACArgument> arguments;
 
 
 	TACFunction(bool is_public,std::string ident)
@@ -61,19 +86,11 @@ public:
 		this->instructions.push_back(inst);
 	}
 
-	void add_argument(std::string argument)
+	void add_argument(TACArgument argument)
 	{
 		this->arguments.push_back(argument);
 	}
 };
-
-
-enum class TACType
-{
-	I32,
-	I64,
-};
-
 
 class TACGlobalVariable
 {
@@ -138,7 +155,12 @@ public:
 	std::string ident;
 	std::vector<TACValue *> arguments;
 	TACValue *dst;
+	TACType data_type;
 
+	void add_type(TACType data_type)
+	{
+		this->data_type = data_type;
+	}
 
 	TACFunctionCallInst(std::string ident,TACValue *dst)
 	{
@@ -158,6 +180,13 @@ class TACReturnInst
 {
 public:
 	TACValue *value;
+	TACType data_type;
+
+	void add_type(TACType data_type)
+	{
+		this->data_type = data_type;
+	}
+
 	TACReturnInst(TACValue *value)
 	{
 		this->value = value;
@@ -179,6 +208,12 @@ public:
 	TACValue *dst;
 	TACUnaryOperator op;
 	TACValue *src;
+	TACType data_type;
+
+	void add_type(TACType data_type)
+	{
+		this->data_type = data_type;
+	}
 
 	TACUnaryInst(TACValue *dst,TACUnaryOperator op,TACValue *src)
 	{
@@ -196,6 +231,12 @@ class TACSignExtendInst
 public:
 	TACValue *dst;
 	TACValue *src;
+	TACType data_type;
+
+	void add_type(TACType data_type)
+	{
+		this->data_type = data_type;
+	}
 
 	TACSignExtendInst(TACValue *dst,TACValue *src)
 	{
@@ -213,6 +254,12 @@ class TACTruncateInst
 public:
 	TACValue *dst;
 	TACValue *src;
+	TACType data_type;
+
+	void add_type(TACType data_type)
+	{
+		this->data_type = data_type;
+	}
 
 	TACTruncateInst(TACValue *dst,TACValue *src)
 	{
@@ -253,6 +300,12 @@ public:
 	TACBinaryOperator op;
 	TACValue *src1;
 	TACValue *src2;
+	TACType data_type;
+
+	void add_type(TACType data_type)
+	{
+		this->data_type = data_type;
+	}
 
 	TACBinaryInst(TACValue *dst,TACValue *src1,TACBinaryOperator op,TACValue *src2)
 	{
@@ -269,6 +322,12 @@ class TACCopyInst
 public:
 	TACValue *dst;
 	TACValue *src;
+	TACType data_type;
+
+	void add_type(TACType data_type)
+	{
+		this->data_type = data_type;
+	}
 
 	TACCopyInst(TACValue *dst,TACValue *src)
 	{
@@ -306,6 +365,13 @@ class TACJmpIfZeroInst
 public:
 	TACValue *value;
 	std::string label;
+	TACType data_type;
+
+	void add_type(TACType data_type)
+	{
+		this->data_type = data_type;
+	}
+
 	TACJmpIfZeroInst(TACValue *value,std::string label)
 	{
 		this->value = value;
@@ -319,6 +385,13 @@ class TACJmpIfNotZeroInst
 public:
 	TACValue *value;
 	std::string label;
+	TACType data_type;
+
+	void add_type(TACType data_type)
+	{
+		this->data_type = data_type;
+	}
+	
 	TACJmpIfNotZeroInst(TACValue *value,std::string label)
 	{
 		this->value = value;
@@ -338,6 +411,12 @@ class TACValue
 public:
 	TACValueType type;
 	void *value;
+	TACType data_type;
+
+	void add_type(TACType data_type)
+	{
+		this->data_type = data_type;
+	}
 
 	TACValue(TACValueType type,void *value)
 	{
@@ -351,6 +430,7 @@ public:
 enum class TACConstantType
 {
 	I32,
+	I64,
 };
 
 class TACConstant
@@ -371,6 +451,12 @@ class TACVariable
 {
 public:
 	std::string ident;
+	TACType data_type;
+
+	void add_type(TACType data_type)
+	{
+		this->data_type = data_type;
+	}
 
 	TACVariable(std::string ident)
 	{

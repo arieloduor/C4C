@@ -58,7 +58,6 @@ public:
 			}
 			case TACDeclarationType::VARDECL:
 			{
-				DEBUG_PRINT("here "," vardecl");
 				ASMGlobalVariable *asm_vardecl = convert_global_vardecl((TACGlobalVariable *)decl->decl);
 				asm_decl = new(mem) ASMDeclaration(ASMDeclarationType::VARDECL,asm_vardecl);
 				break;
@@ -108,6 +107,7 @@ public:
 
 		mem = alloc(sizeof(ASMOperand));
 		ASMOperand *asm_dst = new(mem) ASMOperand(ASMOperandType::REGISTER,asm_reg);
+		asm_dst->add_type(ASMType::I64);
 		
 		mem = alloc(sizeof(ASMPushInst));
 		ASMPushInst *asm_push = new(mem) ASMPushInst(asm_dst);
@@ -122,10 +122,11 @@ public:
 
 		mem = alloc(sizeof(ASMOperand));
 		ASMOperand *asm_src = new(mem) ASMOperand(ASMOperandType::REGISTER,asm_reg);
-		
+		asm_src->add_type(ASMType::I64);
 		
 		mem = alloc(sizeof(ASMMovInst));
 		ASMMovInst *asm_mov = new(mem) ASMMovInst(asm_dst,asm_src);
+		asm_mov->add_type(asm_dst->data_type);
 		
 		mem = alloc(sizeof(ASMInstruction));
 		asm_inst = new(mem) ASMInstruction(ASMInstructionType::MOV,asm_mov);
@@ -154,25 +155,49 @@ public:
 				break;
 			}
 
-			std::string arg = decl->arguments[i];
+			TACArgument arg = decl->arguments[i];
+			int size =0;
 
+			ASMType data_type;
+			switch(arg.type)
+			{
+				case TACType::I32:
+				{
+					data_type = ASMType::I32;
+					size = 4;
+					break;
+				}
+				case TACType::I64:
+				{
+					data_type = ASMType::I64;
+					size = 8;
+					break;
+				}
+				default:
+				{
+					DEBUG_PANIC(" function unsupported data type ");
+					break;
+				}
+			}
 
 			void *mem = alloc(sizeof(ASMPseudo));
-			ASMPseudo *asm_pseudo = new(mem) ASMPseudo(arg);
+			ASMPseudo *asm_pseudo = new(mem) ASMPseudo(arg.ident);
+			asm_pseudo->add_type(data_type);
 
 			mem = alloc(sizeof(ASMOperand));
 			asm_dst = new(mem) ASMOperand(ASMOperandType::PSEUDO,asm_pseudo);
-				
+			asm_dst->add_type(data_type);
 
 			mem = alloc(sizeof(ASMRegister));
-			ASMRegister *asm_reg = new(mem) ASMRegister(reg,4);
+			ASMRegister *asm_reg = new(mem) ASMRegister(reg,size);
 			
 			mem = alloc(sizeof(ASMOperand));
 			ASMOperand *asm_src = new(mem) ASMOperand(ASMOperandType::REGISTER,asm_reg);
-
+			asm_src->add_type(data_type);
 
 			mem = alloc(sizeof(ASMMovInst));
 			ASMMovInst *asm_mov = new(mem) ASMMovInst(asm_dst,asm_src);
+			asm_mov->add_type(data_type);
 			
 			mem = alloc(sizeof(ASMInstruction));
 			ASMInstruction *asm_inst = new(mem) ASMInstruction(ASMInstructionType::MOV,asm_mov);
@@ -247,13 +272,42 @@ public:
 				convert_binary_inst((TACBinaryInst *)inst->instruction);
 				break;
 			}
+			case TACInstructionType::SIGN_EXTEND:
+			{
+				convert_sign_extend_inst((TACSignExtendInst *)inst->instruction);
+				break;
+			}
+			case TACInstructionType::TRUNCATE:
+			{
+				convert_truncate_inst((TACTruncateInst *)inst->instruction);
+				break;
+			}
 		}
 	}
 
 
-
 	void convert_function_call_inst(TACFunctionCallInst *inst)
 	{
+
+		int ret_size = 0;
+		ASMType ret_type;
+
+		switch(inst->data_type)
+		{
+			case TACType::I32:
+			{
+				ret_size = 4;
+				ret_type = ASMType::I32;
+				break;
+			}
+			case TACType::I64:
+			{
+				ret_size = 8;
+				ret_type = ASMType::I64;
+				break;
+			}
+		}
+
 		ASMRegisterType arg_registers[] = {
 			ASMRegisterType::RDI,
 			ASMRegisterType::RSI,
@@ -294,7 +348,7 @@ public:
 
 			mem = alloc(sizeof(ASMOperand));
 			ASMOperand *asm_dst = new(mem) ASMOperand(ASMOperandType::REGISTER,asm_reg);
-			
+			asm_dst->add_type(ASMType::I64);
 
 			mem = alloc(sizeof(int));
 			int *stack_padding_ptr = new(mem) int;
@@ -305,10 +359,11 @@ public:
 			
 			mem = alloc(sizeof(ASMOperand));
 			ASMOperand *asm_src = new(mem) ASMOperand(ASMOperandType::IMMEDIATE,asm_imm);
-
+			asm_src->add_type(ASMType::I32);
 			
 			mem = alloc(sizeof(ASMSubInst));
 			ASMSubInst *asm_sub = new(mem) ASMSubInst(asm_dst,asm_src);
+			asm_sub->add_type(ASMType::I64);
 			
 			mem = alloc(sizeof(ASMInstruction));
 			ASMInstruction *asm_inst = new(mem) ASMInstruction(ASMInstructionType::SUB,asm_sub);
@@ -328,18 +383,43 @@ public:
 				continue;
 			}
 
+			ASMType data_type;
+			int size = 0;
+
+			switch(tac_arg->data_type)
+			{
+				case TACType::I32:
+				{
+					data_type = ASMType::I32;
+					size = 4;
+					break;
+				}
+				case TACType::I64:
+				{
+					data_type = ASMType::I64;
+					size = 8;
+					break;
+				}
+				default:
+				{
+					DEBUG_PANIC("function call unsupported data type ");
+					break;
+				}
+			}
 
 			void *mem = alloc(sizeof(ASMRegister));
-			ASMRegister *asm_reg = new(mem) ASMRegister(reg,4);
+			ASMRegister *asm_reg = new(mem) ASMRegister(reg,size);
 			
 
 			mem = alloc(sizeof(ASMOperand));
 			ASMOperand *asm_dst = new(mem) ASMOperand(ASMOperandType::REGISTER,asm_reg);
+			asm_dst->add_type(data_type);
 
 			ASMOperand *asm_arg = convert_value(tac_arg);
 
 			mem = alloc(sizeof(ASMMovInst));
 			ASMMovInst *asm_mov = new(mem) ASMMovInst(asm_dst,asm_arg);
+			asm_mov->add_type(data_type);
 			
 			mem = alloc(sizeof(ASMInstruction));
 			ASMInstruction *asm_inst = new(mem) ASMInstruction(ASMInstructionType::MOV,asm_mov);
@@ -361,7 +441,7 @@ public:
 			ASMOperand *asm_arg = convert_value(tac_arg);
 
 
-			if (asm_arg->type == ASMOperandType::REGISTER or asm_arg->type == ASMOperandType::IMMEDIATE)
+			if (asm_arg->type == ASMOperandType::REGISTER or asm_arg->type == ASMOperandType::IMMEDIATE or asm_arg->data_type == ASMType::I64)
 			{
 				void *mem = alloc(sizeof(ASMPushInst));
 				ASMPushInst *asm_push = new(mem) ASMPushInst(asm_arg);
@@ -369,21 +449,20 @@ public:
 				mem = alloc(sizeof(ASMInstruction));
 				ASMInstruction *asm_inst = new(mem) ASMInstruction(ASMInstructionType::PUSH,asm_push);
 				this->inst->push_back(asm_inst);
-				
 			}
 			else
 			{
 				void *mem = alloc(sizeof(ASMRegister));
-				ASMRegister *asm_reg = new(mem) ASMRegister(ASMRegisterType::RAX,4);
+				ASMRegister *asm_reg = new(mem) ASMRegister(ASMRegisterType::RAX,8);
 				
 
 				mem = alloc(sizeof(ASMOperand));
 				ASMOperand *asm_dst = new(mem) ASMOperand(ASMOperandType::REGISTER,asm_reg);
-
+				asm_dst->add_type(ASMType::I64);
 
 				mem = alloc(sizeof(ASMMovInst));
 				ASMMovInst *asm_mov = new(mem) ASMMovInst(asm_dst,asm_arg);
-			
+				asm_mov->add_type(asm_dst->data_type);			
 				
 				mem = alloc(sizeof(ASMInstruction));
 				ASMInstruction *asm_inst = new(mem) ASMInstruction(ASMInstructionType::MOV,asm_mov);
@@ -421,6 +500,7 @@ public:
 
 			mem = alloc(sizeof(ASMOperand));
 			ASMOperand *asm_dst = new(mem) ASMOperand(ASMOperandType::REGISTER,asm_reg);
+			asm_dst->add_type(ASMType::I64);
 			
 
 			mem = alloc(sizeof(int));
@@ -432,10 +512,12 @@ public:
 			
 			mem = alloc(sizeof(ASMOperand));
 			ASMOperand *asm_src = new(mem) ASMOperand(ASMOperandType::IMMEDIATE,asm_imm);
+			asm_src->add_type(ASMType::I32);
 
 			
 			mem = alloc(sizeof(ASMAddInst));
 			ASMAddInst *asm_add = new(mem) ASMAddInst(asm_dst,asm_src);
+			asm_add->add_type(asm_dst->data_type);
 			
 			mem = alloc(sizeof(ASMInstruction));
 			ASMInstruction *asm_inst = new(mem) ASMInstruction(ASMInstructionType::ADD,asm_add);
@@ -446,15 +528,22 @@ public:
 		
 		ASMOperand *asm_dst = convert_value(inst->dst);
 
+		if(ret_type != asm_dst->data_type)
+		{
+			DEBUG_PANIC(" conflicting return types ");
+		}
+
 		mem = alloc(sizeof(ASMRegister));
-		ASMRegister *asm_reg = new(mem) ASMRegister(ASMRegisterType::RAX,4);
+		ASMRegister *asm_reg = new(mem) ASMRegister(ASMRegisterType::RAX,ret_size);
 		
 
 		mem = alloc(sizeof(ASMOperand));
 		ASMOperand *asm_src = new(mem) ASMOperand(ASMOperandType::REGISTER,asm_reg);
+		asm_src->add_type(ret_type);
 
 		mem = alloc(sizeof(ASMMovInst));
 		ASMMovInst *asm_mov = new(mem) ASMMovInst(asm_dst,asm_src);
+		asm_mov->add_type(asm_dst->data_type);
 	
 		
 		mem = alloc(sizeof(ASMInstruction));
@@ -554,6 +643,38 @@ public:
 	
 	}
 
+	void convert_sign_extend_inst(TACSignExtendInst *inst)
+	{
+		ASMOperand *asm_dst = convert_value(inst->dst);
+		ASMOperand *asm_src = convert_value(inst->src);
+		
+		void *mem = alloc(sizeof(ASMMovSxInst));
+		ASMMovSxInst *asm_mov = new(mem) ASMMovSxInst(asm_dst,asm_src);
+		
+		mem = alloc(sizeof(ASMInstruction));
+		ASMInstruction *asm_inst = new(mem) ASMInstruction(ASMInstructionType::MOVSX,asm_mov);
+		this->inst->push_back(asm_inst);
+		
+	}
+
+
+	void convert_truncate_inst(TACTruncateInst *inst)
+	{
+		ASMOperand *asm_dst = convert_value(inst->dst);
+		ASMOperand *asm_src = convert_value(inst->src);
+		
+		void *mem = alloc(sizeof(ASMMovInst));
+		ASMMovInst *asm_mov = new(mem) ASMMovInst(asm_dst,asm_src);
+		asm_mov->add_type(asm_dst->data_type);
+		
+		mem = alloc(sizeof(ASMInstruction));
+		ASMInstruction *asm_inst = new(mem) ASMInstruction(ASMInstructionType::MOV,asm_mov);
+		this->inst->push_back(asm_inst);
+		
+	}
+
+
+
 	void convert_jmp_inst(TACJmpInst *inst)
 	{
 		void *mem = alloc(sizeof(ASMJmpInst));
@@ -566,16 +687,42 @@ public:
 
 	void convert_return_inst(TACReturnInst *inst)
 	{
+		int size = 0;
+		
+		ASMType data_type;
+		switch(inst->data_type)
+		{
+			case TACType::I32:
+			{
+				data_type = ASMType::I32;
+				size = 4;
+				break;
+			}
+			case TACType::I64:
+			{
+				data_type = ASMType::I64;
+				size = 8;
+				break;
+			}
+			default:
+			{
+				DEBUG_PANIC("return unsupported data type ");
+				break;
+			}
+		}
+
 		void *mem = alloc(sizeof(ASMRegister));
-		ASMRegister *asm_reg = new(mem) ASMRegister(ASMRegisterType::RAX,4);
+		ASMRegister *asm_reg = new(mem) ASMRegister(ASMRegisterType::RAX,size);
 
 		mem = alloc(sizeof(ASMOperand));
 		ASMOperand *asm_dst = new(mem) ASMOperand(ASMOperandType::REGISTER,asm_reg);
 		ASMOperand *asm_src = convert_value(inst->value);
 		
+		asm_dst->add_type(data_type);
 		
 		mem = alloc(sizeof(ASMMovInst));
 		ASMMovInst *asm_mov = new(mem) ASMMovInst(asm_dst,asm_src);
+		asm_mov->add_type(data_type);
 		
 		mem = alloc(sizeof(ASMInstruction));
 		ASMInstruction *asm_inst = new(mem) ASMInstruction(ASMInstructionType::MOV,asm_mov);
@@ -590,17 +737,19 @@ public:
 
 		mem = alloc(sizeof(ASMOperand));
 		asm_dst = new(mem) ASMOperand(ASMOperandType::REGISTER,asm_reg);
-		
+		asm_dst->add_type(ASMType::I64);
+
 		mem = alloc(sizeof(ASMRegister));
 		asm_reg = new(mem) ASMRegister(ASMRegisterType::RBP,8);
 		
 
 		mem = alloc(sizeof(ASMOperand));
 		asm_src = new(mem) ASMOperand(ASMOperandType::REGISTER,asm_reg);
-		
+		asm_src->add_type(ASMType::I64);
 
 		mem = alloc(sizeof(ASMMovInst));
 		asm_mov = new(mem) ASMMovInst(asm_dst,asm_src);
+		asm_mov->add_type(asm_dst->data_type);
 		
 		mem = alloc(sizeof(ASMInstruction));
 		asm_inst = new(mem) ASMInstruction(ASMInstructionType::MOV,asm_mov);
@@ -634,6 +783,7 @@ public:
 		
 		void *mem = alloc(sizeof(ASMMovInst));
 		ASMMovInst *asm_mov = new(mem) ASMMovInst(asm_dst,asm_src1);
+		asm_mov->add_type(asm_dst->data_type);
 		
 		mem = alloc(sizeof(ASMInstruction));
 		ASMInstruction *asm_inst = new(mem) ASMInstruction(ASMInstructionType::MOV,asm_mov);
@@ -645,6 +795,7 @@ public:
 			{
 				void *mem = alloc(sizeof(ASMAddInst));
 				ASMAddInst *asm_add = new(mem) ASMAddInst(asm_dst,asm_src2);
+				asm_add->add_type(asm_dst->data_type);
 				
 				mem = alloc(sizeof(ASMInstruction));
 				ASMInstruction *asm_inst = new(mem) ASMInstruction(ASMInstructionType::ADD,asm_add);
@@ -656,6 +807,7 @@ public:
 			{
 				void *mem = alloc(sizeof(ASMSubInst));
 				ASMSubInst *asm_sub = new(mem) ASMSubInst(asm_dst,asm_src2);
+				asm_sub->add_type(asm_dst->data_type);
 				
 				mem = alloc(sizeof(ASMInstruction));
 				ASMInstruction *asm_inst = new(mem) ASMInstruction(ASMInstructionType::SUB,asm_sub);
@@ -736,6 +888,7 @@ public:
 		
 		void *mem = alloc(sizeof(ASMMovInst));
 		ASMMovInst *asm_mov = new(mem) ASMMovInst(asm_dst,asm_src);
+		asm_mov->add_type(asm_dst->data_type);
 		
 		mem = alloc(sizeof(ASMInstruction));
 		ASMInstruction *asm_inst = new(mem) ASMInstruction(ASMInstructionType::MOV,asm_mov);
@@ -748,6 +901,7 @@ public:
 			{
 				mem = alloc(sizeof(ASMNegInst));
 				ASMNegInst *asm_neg = new(mem) ASMNegInst(asm_dst);
+				asm_neg->add_type(asm_dst->data_type);
 				
 				mem = alloc(sizeof(ASMInstruction));
 				ASMInstruction *asm_inst = new(mem) ASMInstruction(ASMInstructionType::NEG,asm_neg);
@@ -758,6 +912,7 @@ public:
 			{
 				mem = alloc(sizeof(ASMNotInst));
 				ASMNotInst *asm_not = new(mem) ASMNotInst(asm_dst);
+				asm_not->add_type(asm_dst->data_type);
 				
 				mem = alloc(sizeof(ASMInstruction));
 				ASMInstruction *asm_inst = new(mem) ASMInstruction(ASMInstructionType::NOT,asm_not);
@@ -790,6 +945,7 @@ public:
 						ASMImmediate *asm_imm = new(mem) ASMImmediate(ASMImmediateType::I32,asm_value);
 						mem = alloc(sizeof(ASMOperand));
 						asm_operand = new(mem) ASMOperand(ASMOperandType::IMMEDIATE,asm_imm);
+						asm_operand->add_type(ASMType::I32);
 						break;
 					}
 				}
@@ -799,11 +955,34 @@ public:
 			{
 				TACVariable *tac_var = (TACVariable *)value->value;
 
+				ASMType data_type;
+				switch(tac_var->data_type)
+				{
+					case TACType::I32:
+					{
+						data_type = ASMType::I32;
+						break;
+					}
+					case TACType::I64:
+					{
+						data_type = ASMType::I64;
+						break;
+					}
+					default:
+					{
+						std::cout << tac_var->ident + "   |=>" <<  int(tac_var->data_type) << " type " <<std::endl;
+						DEBUG_PANIC("convert value unsupported data type ");
+						break;
+					}
+				}
+
 				void *mem = alloc(sizeof(ASMPseudo));
 				ASMPseudo *asm_pseudo = new(mem) ASMPseudo(tac_var->ident);
+				asm_pseudo->add_type(data_type);
 
 				mem = alloc(sizeof(ASMOperand));
 				asm_operand = new(mem) ASMOperand(ASMOperandType::PSEUDO,asm_pseudo);
+				asm_operand->add_type(data_type);
 				break;
 			}
 

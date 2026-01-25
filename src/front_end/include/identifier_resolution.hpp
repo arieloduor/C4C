@@ -315,6 +315,7 @@ public:
 
                 resolve_expr(assign_expr->lhs,ident_map);
                 resolve_expr(assign_expr->rhs,ident_map);
+
                 break;
             }
             case ASTExpressionType::VARIABLE:
@@ -364,6 +365,13 @@ public:
                 ASTUnaryExpr *unary_expr = (ASTUnaryExpr *)expr->expr;
 
                 resolve_expr(unary_expr->rhs,ident_map);
+                break;
+            }
+            case ASTExpressionType::CAST:
+			{
+                ASTCastExpr *cast_expr = (ASTCastExpr *)expr->expr;
+
+                resolve_expr(cast_expr->rhs,ident_map);
                 break;
             }
             case ASTExpressionType::BINARY:

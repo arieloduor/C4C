@@ -19,6 +19,7 @@ enum class ASMInstructionType
 	JMP_COND,
 	LABEL,
 	CALL,
+	MOVSX,
 };
 
 #include "../../include/asm_ast.hpp"
@@ -87,6 +88,7 @@ public:
 enum class ASMImmediateType
 {
 	I32,
+	I64,
 };
 
 class ASMImmediate
@@ -106,7 +108,14 @@ public:
 class ASMPseudo
 {
 public:
-	std::string ident;	
+	std::string ident;
+	ASMType data_type;
+
+	void add_type(ASMType data_type)
+	{
+		this->data_type = data_type;
+	}
+
 	ASMPseudo(std::string ident)
 	{
 		this->ident = ident;
@@ -136,6 +145,12 @@ class ASMOperand
 public:
 	ASMOperandType type;
 	void *operand;
+	ASMType data_type;
+
+	void add_type(ASMType data_type)
+	{
+		this->data_type = data_type;
+	}
 	
 	ASMOperand(ASMOperandType type,void *operand)
 	{
@@ -150,6 +165,12 @@ class ASMMovInst
 public:
 	ASMOperand *dst;
 	ASMOperand *src;
+	ASMType data_type;
+
+	void add_type(ASMType data_type)
+	{
+		this->data_type = data_type;
+	}
 
 	ASMMovInst(ASMOperand *dst,ASMOperand *src)
 	{
@@ -161,11 +182,41 @@ public:
 
 
 
+
+class ASMMovSxInst
+{
+public:
+	ASMOperand *dst;
+	ASMOperand *src;
+	ASMType data_type;
+
+	void add_type(ASMType data_type)
+	{
+		this->data_type = data_type;
+	}
+
+	ASMMovSxInst(ASMOperand *dst,ASMOperand *src)
+	{
+		this->dst = dst;
+		this->src = src;
+	}
+
+};
+
+
+
+
 class ASMCmpInst
 {
 public:
 	ASMOperand *dst;
 	ASMOperand *src;
+	ASMType data_type;
+
+	void add_type(ASMType data_type)
+	{
+		this->data_type = data_type;
+	}
 
 	ASMCmpInst(ASMOperand *dst,ASMOperand *src)
 	{
@@ -181,6 +232,12 @@ class ASMSubInst
 public:
 	ASMOperand *dst;
 	ASMOperand *src;
+	ASMType data_type;
+
+	void add_type(ASMType data_type)
+	{
+		this->data_type = data_type;
+	}
 
 	ASMSubInst(ASMOperand *dst,ASMOperand *src)
 	{
@@ -276,6 +333,12 @@ class ASMAddInst
 public:
 	ASMOperand *dst;
 	ASMOperand *src;
+	ASMType data_type;
+
+	void add_type(ASMType data_type)
+	{
+		this->data_type = data_type;
+	}
 
 	ASMAddInst(ASMOperand *dst,ASMOperand *src)
 	{
@@ -299,6 +362,12 @@ class ASMNegInst
 {
 public:
 	ASMOperand *dst;
+	ASMType data_type;
+
+	void add_type(ASMType data_type)
+	{
+		this->data_type = data_type;
+	}
 
 	ASMNegInst(ASMOperand *dst)
 	{
@@ -314,6 +383,12 @@ class ASMNotInst
 {
 public:
 	ASMOperand *dst;
+	ASMType data_type;
+
+	void add_type(ASMType data_type)
+	{
+		this->data_type = data_type;
+	}
 
 	ASMNotInst(ASMOperand *dst)
 	{
@@ -330,6 +405,12 @@ class ASMPushInst
 {
 public:
 	ASMOperand *dst;
+	ASMType data_type;
+
+	void add_type(ASMType data_type)
+	{
+		this->data_type = data_type;
+	}
 
 	ASMPushInst(ASMOperand *dst)
 	{
@@ -344,6 +425,12 @@ class ASMPopInst
 {
 public:
 	ASMOperand *dst;
+	ASMType data_type;
+
+	void add_type(ASMType data_type)
+	{
+		this->data_type = data_type;
+	}
 
 	ASMPopInst(ASMOperand *dst)
 	{

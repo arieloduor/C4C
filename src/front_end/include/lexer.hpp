@@ -443,6 +443,22 @@ private:
 		{
 			add_token(TokenType::TOKEN_KEYWORD_WHILE,buf);
 		}
+		else if (match_keyword(buf,"u8"))
+		{
+			add_token(TokenType::TOKEN_KEYWORD_U8,buf);
+		}
+		else if (match_keyword(buf,"u16"))
+		{
+			add_token(TokenType::TOKEN_KEYWORD_U16,buf);
+		}
+		else if (match_keyword(buf,"u32"))
+		{
+			add_token(TokenType::TOKEN_KEYWORD_U32,buf);
+		}
+		else if (match_keyword(buf,"u64"))
+		{
+			add_token(TokenType::TOKEN_KEYWORD_U64,buf);
+		}
 		else
 		{
 			add_token(TokenType::TOKEN_IDENT,buf);

@@ -175,6 +175,11 @@ public:
 				gen_jmpcond_inst((ASMJmpCondInst *)inst->instruction);
 				break;
 			}
+			case ASMInstructionType::MOVSX:
+			{
+				gen_movsx_inst((ASMMovSxInst *)inst->instruction);
+				break;
+			}
 			default:
 			{
 				return;
@@ -208,7 +213,44 @@ public:
 	
 	void gen_mov_inst(ASMMovInst *inst)
 	{
+		switch(inst->dst->data_type)
+		{
+			case ASMType::I64:
+			{
+				switch(inst->dst->type)
+				{
+					case ASMOperandType::REGISTER:
+					{
+						ASMRegister *asm_reg = (ASMRegister *)inst->dst->operand;
+						std::cout << "asm size :  " << asm_reg->size << std::endl;
+						asm_reg->size = 8;
+						break;
+					}
+				}
+				break;
+			}
+			case ASMType::I32:
+			{
+				std::cout << "mov"<<std::endl;
+				break;
+			}
+			default:
+			{
+				DEBUG_PANIC(" --------------  ");
+			}
+		}
+
 		write_body("\tmov ");
+		gen_operand(inst->dst);
+		write_body(",");
+		gen_operand(inst->src);
+		write_body("\n");
+		
+	}
+	
+	void gen_movsx_inst(ASMMovSxInst *inst)
+	{
+		write_body("\tmovsx ");
 		gen_operand(inst->dst);
 		write_body(",");
 		gen_operand(inst->src);
@@ -422,6 +464,11 @@ public:
 				write_body("[rel " + asm_data->address + "]");
 				break;
 			}
+			case 8:
+			{
+				write_body("[rel " + asm_data->address + "]");
+				break;
+			}
 		}
 
 	}
@@ -447,8 +494,12 @@ public:
 				write_body("DWORD [" + asm_stack->address + " - " + std::to_string(asm_stack->index) + "]");
 				break;
 			}
+			case 8:
+			{
+				write_body("QWORD [" + asm_stack->address + " - " + std::to_string(asm_stack->index) + "]");
+				break;
+			}
 		}
-
 	}
 
 
