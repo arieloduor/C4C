@@ -1,17 +1,15 @@
-enum Color:
-    RED = 1
-    GREEN
-    BLUE
-:
-
-
-fn add(u64 x,u64 y)->u32:
-    return x + y
-:
-
+@include "tests/test1.rs"
 
 pub fn main()->i32:
-    i32 x = 21
+    i32 character = 65
+    while character <= 120:
+        putchar(character)
+        character = character + 1
+    :
+   
+    exit(200)
+    putchar(10)
 
-    return add(x,x+1)
+    exit(2)
+    return 10
 :
