@@ -2,7 +2,8 @@
  * FILE: Preprocessor.hpp                                                                           *
  * AUTHOR: Michael Kamau                                                                            *
  *                                                                                                  *
- * PURPOSE: The program removes comments and expands macros, the output is then fed to the          *
+ * PURPOSE: The program removes comments and expands macros and include statements,                 *
+ *          the output is then fed to the                                                           *
  *          lexer to continue with the lexical analysis                                             *
  *                                                                                                  *
  *  USAGE: To instantiate the program call its constructor and pass two arguments:                  *
@@ -21,6 +22,9 @@
 
 #include "../../utils/include/utils.hpp"
 
+#define C4_SYSTEM_FOLDER "../../system_folder"
+#define PATH_MAX 1024
+
 class Preprocessor
 {
 private:
@@ -28,7 +32,7 @@ private:
     const std::string &file_source;
     std::unordered_map<std::string, std::string> defines; /* We use this map to track the defined macros */
     std::unordered_map<std::string, bool> included_files; /* We use this map to track the already included files */
-    std::vector<std::string> track_circular_dependency;
+    std::vector<std::string> track_circular_dependency;   /* This is used to check for circular dependency */
     bool has_errors;
     std::vector<std::string> errors; /* To store the errors encountered*/
     int row;
@@ -113,6 +117,8 @@ public:
         return strcmp(buff, "@define ") == 0;
     }
 
+
+    /* This is a helper function to check if the next 9 characters equal `@include `*/
     inline bool is_include(size_t curr) const
     {
         if (curr + 9 >= file_source.length())
@@ -129,27 +135,122 @@ public:
         return strcmp(buff, "@include ") == 0;
     }
 
+
+    /**
+     * This helper function helps with checking whether the included filepath is
+     * an absolute or a relative path, currently, it supports unix based paths format
+     * forward slash (/) and not backslash (\)
+     */
+    static bool is_absolute_path(const char *path)
+    {
+        if (!path)
+        {
+            return false;
+        }
+
+        return path[0] == '/';
+    }
+
+
+    /**
+     * This function, helps in determining the base directory of the 
+     * source code, 
+     * For example, if you are compiling a file in the directory
+     * home/.../dev/tests/test.rs,
+     * 
+     * the dirname_of should return home/.../dev/tests as the base directory name
+     * 
+     */
+
+     /********************************************************************************************\
+      * NOTE: However, due to using recursion, this becomes a disadvantage because i try to find *
+      * the base using the current file being processed, as a result the base will always be     *
+      * based on the location of the file being currently processed byt the preprocessor.        *
+     \********************************************************************************************/
+
     static std::string dirname_of(const std::string &path)
     {
         size_t pos = path.find_last_of("/\\");
         if (pos == std::string::npos)
+        {
+            DEBUG_PRINT("Dirname wasnt found","");
             return "."; /* current directory fallback */
+        }
+        DEBUG_PRINT("Dirname is: ", path.substr(0, pos));
+
         return path.substr(0, pos);
     }
 
-    char *get_canonical_path(std::string file_name, const char *path)
-    {
-        std::string base = dirname_of(file_name);
-        std::string combined = base + "/" + path;
-        char *res = realpath(combined.c_str(), NULL);
 
-        if (!res)
+    /**
+     * This function builds the canonical path for the file being included
+     * the idea is, after getting the full directory, and checking whether the file is an absolute path or not,
+     * it returns the correct path that will lead to the file.
+     * 
+     * If the file is an absolute path, it is taken as is, because the file is absolute to the file importing it
+     * If it is not absolute, we get the base directory and build the path correctly.
+     * Remember, the base directory is built from the file being currently processed by the preprocessor
+     * 
+     * The reason for getting the canonical path is to use it to prevent circular dependencies and multiple imports,
+     * a canonical path will always be the same! 
+     */
+    std::string get_canonical_path(std::string file_name, const char *path)
+    {
+
+        std::string possible_path;
+
+        if (is_absolute_path(path))
+        {
+            possible_path = path;
+        }
+        else
+        {
+
+            std::string base = dirname_of(file_name);
+            possible_path = base + "/" + path;
+        }
+        char res[PATH_MAX];
+
+        DEBUG_PRINT("path this time: ", possible_path);
+        if (!realpath(possible_path.c_str(), res))
         {
             perror("Real path failed");
             return NULL;
         }
-        return res;
+        return std::string(res);
     }
+
+
+    /**
+     * This is a helper function to help figure out if a the path is already in the track_circular_dependancy vector
+     * I try to use little C++ as possible so I didnt use std::find for this one.
+     * 
+     * The reason for using a linear search O(n) is because of such a case:
+     * 
+     * A -> B -> C -> A
+     * 
+     * If the above case should happen, where A,B,C are files, we see that C trys to include A which
+     * would lead to a circular dependency
+     */
+    bool in_stack(const std::string &path)
+    {
+        DEBUG_PRINT("In here: ", "");
+        for (size_t i = 0; i < track_circular_dependency.size(); i++)
+        {
+            DEBUG_PRINT("In here: ", track_circular_dependency[i]);
+
+            if (track_circular_dependency[i] == path)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * This function is used to updat the row, the row should be nice during error handling 
+     * for the preprocessor
+     */
 
     void updateRow()
     {
@@ -351,20 +452,56 @@ public:
                     errors.push_back("Expected closing \" but found none");
                 }
 
-                char *full_path = get_canonical_path(file_name, include_file.c_str());
-                DEBUG_PRINT("Checking for: ", include_file);
+                std::string full_path = get_canonical_path(file_name, include_file.c_str());
 
-                DEBUG_PRINT("The path is: ", full_path);
-                FileToString fs(full_path);
-                std::string file_contents = fs.read();
-
+                if (!track_circular_dependency.empty() && in_stack(full_path))
+                {
+                    DEBUG_PANIC("Detected circular dependency");
+                }
                 if (!included_files.count(full_path))
                 {
-                    included_files[full_path] = true;
-                    std::string real_path = full_path;
+                    track_circular_dependency.push_back(full_path);
 
-                    Preprocessor p(real_path, file_contents);
-                    std::string processed_output = p.run();
+                    FileToString fs(full_path);
+                    std::string file_contents = fs.read();
+
+                    
+                    
+                    /*********************************************************************************************************\
+                     *                                                                                                       *
+                     * NOTE: Having to reinstantiate the preprocessor recursively has made it a little                       *
+                     * difficult to handle absolute and relative paths well.                                                 *
+                     * In this approach, the first file that is being compiled say `test.rs`, and is including               *
+                     * another file using its absolute path e.g include_test/test1.rs, will work                             *
+                     * since during the first preprocessor.run(), the path build is say                                      *
+                     * home/../dev/include_test/test1.rs, because the base will be                                           *
+                     * home/.../dev, where test.rs is                                                                        *
+                     *                                                                                                       *
+                     * but inside test1.rs, should it try to import tests/test.rs, since its in the                          *
+                     * recursed preprocessor, the base path becomes the new  file_name passed in the constructor             *
+                     * e.g home/.../dev/include_test/ , building the path gives home/.../dev/include_test/tests/test.rs      *
+                     * which wont be found.                                                                                  *
+                     *                                                                                                       *
+                     * As of the documenting of this program, I havent fixed this yet.                                       *
+                     *                                                                                                       *
+                     * I resorted to using recursion and sharing  parents states to keep ownership of                        *
+                     * the track_circular_dependency strictly to preprocessor.hpp, the other approach                        *
+                     * that I thought of at the time would have been to let driver.cpp own track_circular_dependency,        *
+                     * which wouldnt be good for design nor scale.                                                           *
+                     \********************************************************************************************************/
+
+                     /* Share the parent state to avoid reprocessing already-included files */
+                     
+                     Preprocessor included_prep(full_path, file_contents);
+                     included_prep.included_files = this->included_files;
+                     included_prep.track_circular_dependency = this->track_circular_dependency;
+                     
+                    std::string processed_output = included_prep.run();
+
+                    /* Update parent's internal state after recursion */ 
+                    this->included_files = included_prep.included_files;
+                    track_circular_dependency.pop_back();
+                    included_files[full_path] = true;
 
                     output += processed_output;
                     output += "\n";
