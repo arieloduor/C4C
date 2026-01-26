@@ -2,4 +2,5 @@ obj
 target
 tests
 c4_pilot
+ssh.sh
 
