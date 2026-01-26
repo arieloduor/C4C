@@ -1,16 +1,11 @@
-enum Color
-{
-	__C4_Color_RED = 1,
-	__C4_Color_GREEN,
-	__C4_Color_BLUE,
-};
-
-unsigned int add(unsigned long int x_c4_tmp.0,unsigned long int y_c4_tmp.1)
+int add(int x_c4_tmp.0,int y_c4_tmp.1)
 {
 	return x_c4_tmp.0 + y_c4_tmp.1;
 }
 int main()
 {
 	int x_c4_tmp.2 = 21;
-	return add(x_c4_tmp.2,x_c4_tmp.2 + 1);
+	int y_c4_tmp.3 = 32;
+	int output_c4_tmp.4 = add(x_c4_tmp.2,y_c4_tmp.3);
+	return output_c4_tmp.4;
 }
