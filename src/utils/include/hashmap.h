@@ -54,8 +54,10 @@ struct HashNode
     void *value;
 
     uint64_t hash;
-    HashNode *next; /* For forward chaining */
+    struct HashNode *next; /* For forward chaining */
 };
+
+typedef struct HashNode HashNode;
 
 struct HashMap
 {
@@ -65,6 +67,8 @@ struct HashMap
 
     uint64_t seed;
 };
+
+typedef struct HashMap HashMap;
 
 /**
  This implementation follows the canonical XXH64 design. The goal is not

@@ -49,6 +49,8 @@ struct Node
     
 };
 
+typedef struct Node Node;
+
 struct LinkedList
 {
     Node *head;
@@ -56,6 +58,7 @@ struct LinkedList
     size_t len;
 };
 
+typedef struct LinkedList LinkedList;
 
 /**
  * 
