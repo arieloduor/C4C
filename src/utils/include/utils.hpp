@@ -15,6 +15,7 @@
 #include <unordered_map>
 #include <cfloat>
 #include <cmath>
+#include <assert.h>
 
 
 #ifndef DEBUG_PRINT
