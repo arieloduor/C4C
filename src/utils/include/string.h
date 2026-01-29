@@ -193,6 +193,108 @@ const char *string_cstr(const String *s)
 }
 
 /**
+ * This function checks if two strings are equal
+ * It is not lexicographical
+ */
+int string_equals(const String *a, const String *b)
+{
+    if (!a || !b)
+        return 0;
+
+    if (a->length != b->length)
+        return 0;
+
+    return memcmp(a->data, b->data, a->length) == 0;
+}
+
+/**
+ * This function compares the string 
+ * lexicographically
+ * 
+ */
+int string_compare(String *a, String *b)
+{
+    if(!a && !b)
+    {
+        return 0;
+    }
+    if(!a)
+    {
+        return -1;
+    }
+    if(!b)
+    {
+        return 1;
+    }
+
+    size_t min = a->length < b->length ? a->length : b->length;
+    int c = memcmp(a->data, b->data, min);
+
+    if(c != 0)
+    {
+        return c;
+    }
+
+    if(a->length < b->length)
+    {
+        return -1;
+    }
+    if(b->length < a->length)
+    {
+        return 1;
+    }
+
+    return 0;
+
+}
+
+
+/**
+ * This function compares the string 
+ * lexicographically up to n lengths
+ * 
+ */
+int string_ncompare(String *a, String *b, size_t n)
+{
+    if(!a && !b)
+    {
+        return 0;
+    }
+    if(!a)
+    {
+        return -1;
+    }
+    if(!b)
+    {
+        return 1;
+    }
+
+    if(n > a->length && n > b->length)
+    {
+        DEBUG_PANIC("Length will lead to out of bound");
+    }
+
+    int c = memcmp(a->data, b->data, n);
+
+    if(c != 0)
+    {
+        return c;
+    }
+
+    if(a->length < b->length)
+    {
+        return -1;
+    }
+    if(b->length < a->length)
+    {
+        return 1;
+    }
+
+    return 0;
+
+}
+
+/**
  * This function destroys the string and frees its memory
  * It takes one parameter:
  * - s -> a pointer to the string to destroy

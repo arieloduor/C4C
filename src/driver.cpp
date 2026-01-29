@@ -15,7 +15,7 @@
 #include "back_end/x86_64/include/tac_to_intel64.hpp"
 #include "back_end/x86_64/include/pseudo.hpp"
 #include "back_end/x86_64/include/fixup.hpp"
-
+#include "utils/include/string.h"
 
 #include "back_end/x86_64/include/codegen.hpp"
 
