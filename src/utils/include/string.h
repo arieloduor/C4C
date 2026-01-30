@@ -40,7 +40,7 @@ typedef struct String
  * Returns a pointer to the new String or NULL on failure
  */
 
-String *string_create(size_t cap)
+static inline String *string_create(size_t cap)
 {
     String *new_string = (String *)malloc(sizeof(String));
     if (!new_string)
@@ -68,7 +68,7 @@ String *string_create(size_t cap)
  * Returns true if the string is empty or NULL, false otherwise
  */
 
-bool string_empty(const String *s)
+static inline bool string_empty(const String *s)
 {
     return s && s->length == 0;
 }
@@ -83,7 +83,7 @@ bool string_empty(const String *s)
  * Returns the modified string or NULL on failure
  */
 
-String *string_append_cstr(String *s, const char *cstr, size_t len)
+static inline String *string_append_cstr(String *s, const char *cstr, size_t len)
 {
     if (!s || !cstr)
     {
@@ -121,7 +121,7 @@ String *string_append_cstr(String *s, const char *cstr, size_t len)
  * Returns the modified string or NULL on failure
  */
 
-String *string_prepend_cstr(String *s, const char *cstr, size_t len)
+static inline String *string_prepend_cstr(String *s, const char *cstr, size_t len)
 {
     if (!s || !cstr || len == 0)
     {
@@ -159,7 +159,7 @@ String *string_prepend_cstr(String *s, const char *cstr, size_t len)
  * 
  * Returns a new String containing the substring or NULL on failure
  */
-String *string_sub_str(const String *s, size_t from, size_t to)
+static inline String *string_sub_str(const String *s, size_t from, size_t to)
 {
     if (!s || from > to || to > s->length)
     {
@@ -187,7 +187,7 @@ String *string_sub_str(const String *s, size_t from, size_t to)
  * 
  * Returns the C string (char *) or NULL if s is NULL
  */
-const char *string_cstr(const String *s)
+static inline const char *string_cstr(const String *s)
 {
     return s ? s->data : NULL;
 }
@@ -196,7 +196,7 @@ const char *string_cstr(const String *s)
  * This function checks if two strings are equal
  * It is not lexicographical
  */
-int string_equals(const String *a, const String *b)
+static inline int string_equals(const String *a, const String *b)
 {
     if (!a || !b)
         return 0;
@@ -208,11 +208,27 @@ int string_equals(const String *a, const String *b)
 }
 
 /**
+ * This function checks if two strings are equal
+ * It compares a String and a cstr
+ * It is not lexicographical
+ */
+static inline int string_equals(const String *a, const char *b)
+{
+    if (!a || !b)
+        return 0;
+
+    if (a->length != strlen(b))
+        return 0;
+
+    return memcmp(a->data, b, a->length) == 0;
+}
+
+/**
  * This function compares the string 
  * lexicographically
  * 
  */
-int string_compare(String *a, String *b)
+static inline int string_compare(const String *a, const String *b)
 {
     if(!a && !b)
     {
@@ -249,12 +265,54 @@ int string_compare(String *a, String *b)
 }
 
 
+
+/**
+ * This function compares the string of type String
+ * and a cstr
+ * lexicographically
+ * 
+ */
+static inline int string_cstr_compare(const String *a, const char *b)
+{
+    if(!a && !b)
+    {
+        return 0;
+    }
+    if(!a)
+    {
+        return -1;
+    }
+    if(!b)
+    {
+        return 1;
+    }
+
+    size_t min = a->length < strlen(b) ? a->length : strlen(b);
+    int c = memcmp(a->data, b, min);
+
+    if(c != 0)
+    {
+        return c;
+    }
+
+    if(a->length < strlen(b))
+    {
+        return -1;
+    }
+    if(strlen(b) < a->length)
+    {
+        return 1;
+    }
+
+    return 0;
+}
+
 /**
  * This function compares the string 
  * lexicographically up to n lengths
  * 
  */
-int string_ncompare(String *a, String *b, size_t n)
+static inline int string_ncompare(const String *a,const String *b, size_t n)
 {
     if(!a && !b)
     {
@@ -294,6 +352,53 @@ int string_ncompare(String *a, String *b, size_t n)
 
 }
 
+
+/**
+ * This function compares the string 
+ * lexicographically up to n lengths
+ * It works compares a String and cstr
+ * 
+ */
+static inline int string_cstr_ncompare(const String *a,const char *b, size_t n)
+{
+    if(!a && !b)
+    {
+        return 0;
+    }
+    if(!a)
+    {
+        return -1;
+    }
+    if(!b)
+    {
+        return 1;
+    }
+
+    if(n > a->length && n > strlen(b))
+    {
+        DEBUG_PANIC("Length will lead to out of bound");
+    }
+
+    int c = memcmp(a->data, b, n);
+
+    if(c != 0)
+    {
+        return c;
+    }
+
+    if(a->length < strlen(b))
+    {
+        return -1;
+    }
+    if(strlen(b) < a->length)
+    {
+        return 1;
+    }
+
+    return 0;
+
+}
+
 /**
  * This function destroys the string and frees its memory
  * It takes one parameter:
@@ -301,7 +406,7 @@ int string_ncompare(String *a, String *b, size_t n)
  * 
  * Does nothing if s is NULL
  */
-void string_destroy(String *s)
+static inline void string_destroy(String *s)
 {
     if (!s)
     {
