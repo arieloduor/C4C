@@ -1085,6 +1085,16 @@ public:
 				dst_type = TACType::I64;
 				break;
 			}
+			case DataType::U32:
+			{
+				dst_type = TACType::U32;
+				break;
+			}
+			case DataType::U64:
+			{
+				dst_type = TACType::U64;
+				break;
+			}
 			default:
 			{
 				DEBUG_PANIC(" unsupported dst type in binary_normal [tac] ");

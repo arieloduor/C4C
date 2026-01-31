@@ -872,6 +872,42 @@ public:
 		asm_inst = new(mem) ASMInstruction(ASMInstructionType::MOV,asm_mov);
 		this->inst->push_back(asm_inst);
 
+		if(not is_signed(asm_src1->data_type))
+		{
+			switch(condition)
+			{
+				case ASMCondition::LESS:
+				{
+					condition = ASMCondition::BELOW;
+					break;
+				}
+				case ASMCondition::LESS_EQUAL:
+				{
+					condition = ASMCondition::BELOW_EQUAL;
+					break;
+				}
+				case ASMCondition::GREATER:
+				{
+					condition = ASMCondition::ABOVE;
+					break;
+				}
+				case ASMCondition::GREATER_EQUAL:
+				{
+					condition = ASMCondition::ABOVE_EQUAL;
+					break;
+				}
+				case ASMCondition::EQUAL:
+				case ASMCondition::NOT_EQUAL:
+				{
+					break;
+				}
+				default:
+				{
+					DEBUG_PANIC("unknown condition code TAC TO INTEL");
+				}
+			}
+		}
+
 		mem = alloc(sizeof(ASMSetCondInst));
 		ASMSetCondInst *asm_setcond = new(mem) ASMSetCondInst(condition,asm_dst);
 		
@@ -879,6 +915,25 @@ public:
 		asm_inst = new(mem) ASMInstruction(ASMInstructionType::SET_COND,asm_setcond);
 		this->inst->push_back(asm_inst);
 			
+	}
+
+
+	bool is_signed(ASMType type)
+	{
+		switch(type)
+		{
+			case ASMType::I32:
+			case ASMType::I64:
+			{
+				return true;
+				break;
+			}
+			default:
+			{
+				return false;
+				break;
+			}
+		}
 	}
 
 

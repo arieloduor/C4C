@@ -35,9 +35,16 @@ pub fn main()->i32:
 
 
 pub fn main()->i32:
-    u32 i = 0
+    u64 i = 0
 
-    i = 90
+    if i >= 0:
+        i = 85
+    :
+    else:
+        i = 90
+    :
+
+    i = i + 10
 
     return cast<i32>(i)
 :

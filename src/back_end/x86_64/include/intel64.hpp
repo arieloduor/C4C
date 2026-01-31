@@ -320,6 +320,10 @@ enum class ASMCondition
 	LESS_EQUAL,
 	GREATER,
 	GREATER_EQUAL,
+	BELOW,
+	BELOW_EQUAL,
+	ABOVE,
+	ABOVE_EQUAL,
 };
 
 

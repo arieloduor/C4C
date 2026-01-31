@@ -1209,9 +1209,95 @@ public:
                                         }
                                         break;
                                     }
+                                    case DataType::U32:
+                                    {
+                                        if(binary_expr->rhs->data_type == DataType::I32)
+                                        {
+                                            if(binary_expr->rhs->type == ASTExpressionType::I32)
+                                            {
+                                                binary_expr->rhs->type = ASTExpressionType::U32;
+                                                ASTI32Expr *i32_expr = (ASTI32Expr *)binary_expr->rhs->expr;
+
+                                                if(i32_expr->value >= 0)
+                                                {
+                                                    i32_expr->add_data_type(DataType::U32);
+                                                    binary_expr->rhs->add_data_type(DataType::U32);
+                                                    binary_expr->add_data_type(DataType::U32);
+                                                }
+                                                else
+                                                {
+                                                    fatal(" i32 used with an u32 => perform cast for this to compile");
+                                                }
+                                            }
+                                            else
+                                            {
+                                                fatal(" i32 used with an u32 => perform cast for this to compile");
+                                            }
+                                        }
+                                        else
+                                        {
+                                            binary_expr->add_data_type(DataType::I64);
+                                        }
+                                        break;
+                                    }
+                                    case DataType::U64:
+                                    {
+                                        if(binary_expr->rhs->data_type == DataType::I32)
+                                        {
+                                            if(binary_expr->rhs->type == ASTExpressionType::I32)
+                                            {
+                                                binary_expr->rhs->type = ASTExpressionType::U64;
+                                                ASTI32Expr *i32_expr = (ASTI32Expr *)binary_expr->rhs->expr;
+                                                
+                                                if(i32_expr->value >= 0)
+                                                {
+                                                    i32_expr->add_data_type(DataType::U64);
+                                                    binary_expr->rhs->add_data_type(DataType::U64);
+                                                    binary_expr->add_data_type(DataType::U64);
+                                                }
+                                                else
+                                                {
+                                                    fatal(" i32 used with an u64 => perform cast for this to compile");
+                                                }
+                                            }
+                                            else
+                                            {
+                                                fatal(" i32 used with an u64 => perform cast for this to compile");
+                                            }
+                                        }
+                                        else if(binary_expr->rhs->data_type == DataType::I64)
+                                        {
+                                            if(binary_expr->rhs->type == ASTExpressionType::I64)
+                                            {
+                                                binary_expr->rhs->type = ASTExpressionType::U64;
+                                                ASTI64Expr *i64_expr = (ASTI64Expr *)binary_expr->rhs->expr;
+                                                
+                                                if(i64_expr->value >= 0)
+                                                {
+                                                    i64_expr->add_data_type(DataType::U64);
+                                                    binary_expr->rhs->add_data_type(DataType::U64);
+                                                    binary_expr->add_data_type(DataType::U64);
+                                                }
+                                                else
+                                                {
+                                                    fatal(" i32 used with an u64 => perform cast for this to compile");
+                                                }
+                                            }
+                                            else
+                                            {
+                                                fatal(" i32 used with an u64 => perform cast for this to compile");
+                                            }
+                                        }
+                                        else
+                                        {
+                                            binary_expr->add_data_type(DataType::U64);
+                                        }
+                                        break;
+                                    }
                                     default:
                                     {
-                                        fatal("unsupported datatype encountered");
+                                        std::cout << "   TYPE   :  "  << (int)binary_expr->lhs->data_type << std::endl;
+                                        fatal("binary expr case : unsupported datatype encountered");
                                         break;
                                     }
                                 }
