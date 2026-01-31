@@ -681,6 +681,16 @@ public:
 				gen_i64_immediate((long int *)asm_imm->value);
 				break;
 			}
+			case ASMImmediateType::U32:
+			{
+				gen_u32_immediate((unsigned int *)asm_imm->value);
+				break;
+			}
+			case ASMImmediateType::U64:
+			{
+				gen_u64_immediate((unsigned long int *)asm_imm->value);
+				break;
+			}
 		}
 	}
 
@@ -691,6 +701,16 @@ public:
 	}
 	
 	void gen_i64_immediate(long int *value)
+	{
+		write_body(std::to_string(*value));
+	}
+
+	void gen_u32_immediate(unsigned int *value)
+	{
+		write_body(std::to_string(*value));
+	}
+	
+	void gen_u64_immediate(unsigned long int *value)
 	{
 		write_body(std::to_string(*value));
 	}

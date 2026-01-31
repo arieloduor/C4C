@@ -32,7 +32,7 @@ int main(int argc,char *argv[])
 	std::string processed_output = preprocessor.run();
 	preprocessor.print_errors();
 	
-	DEBUG_PRINT("processed output is: ", processed_output);
+	//DEBUG_PRINT("processed output is: ", processed_output);
 	Lexer lexer(file_name,processed_output);
 	std::vector<Tokens> tokens = lexer.scan_tokens();
 	lexer.print_errors();

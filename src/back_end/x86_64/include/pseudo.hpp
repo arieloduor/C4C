@@ -176,6 +176,22 @@ public:
 								operand->operand = asm_data;
 								break;
 							}
+							case ASMType::U32:
+							{
+								void *mem = alloc(sizeof(ASMData));
+								ASMData *asm_data = new(mem) ASMData(4,key);
+								operand->type = ASMOperandType::DATA;
+								operand->operand = asm_data;
+								break;
+							}
+							case ASMType::U64:
+							{
+								void *mem = alloc(sizeof(ASMData));
+								ASMData *asm_data = new(mem) ASMData(4,key);
+								operand->type = ASMOperandType::DATA;
+								operand->operand = asm_data;
+								break;
+							}
 							default:
 							{
 								DEBUG_PANIC("replace pseudo => unsupported data type");
@@ -206,6 +222,26 @@ public:
 								operand->operand = asm_stack;
 								break;
 							}
+							case ASMType::U32:
+							{
+								void *mem = alloc(sizeof(ASMStack));
+								this->stack_counter += 4;
+								this->table[key] = this->stack_counter;
+								ASMStack *asm_stack = new(mem) ASMStack(4,"rbp",this->stack_counter);
+								operand->type = ASMOperandType::STACK;
+								operand->operand = asm_stack;
+								break;
+							}
+							case ASMType::U64:
+							{
+								void *mem = alloc(sizeof(ASMStack));
+								this->stack_counter += 8;
+								this->table[key] = this->stack_counter;
+								ASMStack *asm_stack = new(mem) ASMStack(8,"rbp",this->stack_counter);
+								operand->type = ASMOperandType::STACK;
+								operand->operand = asm_stack;
+								break;
+							}
 							default:
 							{
 								DEBUG_PANIC("replace pseudo => unsupported data type");
@@ -227,6 +263,24 @@ public:
 							break;
 						}
 						case ASMType::I64:
+						{
+							void *mem = alloc(sizeof(ASMStack));
+							int tmp_stack_counter = this->table[key];
+							ASMStack *asm_stack = new(mem) ASMStack(8,"rbp",tmp_stack_counter);
+							operand->type = ASMOperandType::STACK;
+							operand->operand = asm_stack;
+							break;
+						}
+						case ASMType::U32:
+						{
+							void *mem = alloc(sizeof(ASMStack));
+							int tmp_stack_counter = this->table[key];
+							ASMStack *asm_stack = new(mem) ASMStack(4,"rbp",tmp_stack_counter);
+							operand->type = ASMOperandType::STACK;
+							operand->operand = asm_stack;
+							break;
+						}
+						case ASMType::U64:
 						{
 							void *mem = alloc(sizeof(ASMStack));
 							int tmp_stack_counter = this->table[key];

@@ -660,6 +660,22 @@ public:
 	}
 
 
+	void convert_zero_extend_inst(TACZeroExtendInst *inst)
+	{
+		ASMOperand *asm_dst = convert_value(inst->dst);
+		ASMOperand *asm_src = convert_value(inst->src);
+		
+		void *mem = alloc(sizeof(ASMMovZeroExtendInst));
+		ASMMovZeroExtendInst *asm_mov = new(mem) ASMMovZeroExtendInst(asm_dst,asm_src);
+		asm_mov->add_type(asm_dst->data_type);
+		
+		mem = alloc(sizeof(ASMInstruction));
+		ASMInstruction *asm_inst = new(mem) ASMInstruction(ASMInstructionType::MOVZEROEXTEND,asm_mov);
+		this->inst->push_back(asm_inst);
+		
+	}
+
+
 	void convert_truncate_inst(TACTruncateInst *inst)
 	{
 		ASMOperand *asm_dst = convert_value(inst->dst);
@@ -990,6 +1006,32 @@ public:
 						asm_operand->add_type(ASMType::I64);
 						break;
 					}
+					case TACConstantType::U32:
+					{
+						void *mem = alloc(sizeof(unsigned int));
+						unsigned int *asm_value = new(mem) unsigned int;
+						*asm_value = *((unsigned int *)tac_const->constant);
+						std::cout << " u32 value :   ============================>   " << *asm_value <<std::endl;
+						mem = alloc(sizeof(ASMImmediate));
+						ASMImmediate *asm_imm = new(mem) ASMImmediate(ASMImmediateType::U32,asm_value);
+						mem = alloc(sizeof(ASMOperand));
+						asm_operand = new(mem) ASMOperand(ASMOperandType::IMMEDIATE,asm_imm);
+						asm_operand->add_type(ASMType::U32);
+						break;
+					}
+					case TACConstantType::U64:
+					{
+						void *mem = alloc(sizeof(unsigned long int));
+						unsigned long int *asm_value = new(mem) unsigned long int;
+						*asm_value = *((unsigned long int *)tac_const->constant);
+						std::cout << " i64 value :   ============================>   " << *asm_value <<std::endl;
+						mem = alloc(sizeof(ASMImmediate));
+						ASMImmediate *asm_imm = new(mem) ASMImmediate(ASMImmediateType::U64,asm_value);
+						mem = alloc(sizeof(ASMOperand));
+						asm_operand = new(mem) ASMOperand(ASMOperandType::IMMEDIATE,asm_imm);
+						asm_operand->add_type(ASMType::U64);
+						break;
+					}
 					default:
 					{
 						DEBUG_PANIC("unsuppported TAC constant");
@@ -1012,6 +1054,16 @@ public:
 					case TACType::I64:
 					{
 						data_type = ASMType::I64;
+						break;
+					}
+					case TACType::U32:
+					{
+						data_type = ASMType::U32;
+						break;
+					}
+					case TACType::U64:
+					{
+						data_type = ASMType::U64;
 						break;
 					}
 					default:

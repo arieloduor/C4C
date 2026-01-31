@@ -418,6 +418,16 @@ public:
 				data_type = TACType::I64;
 				break;
 			}
+			case ASTDataType::U32:
+			{
+				data_type = TACType::U32;
+				break;
+			}
+			case ASTDataType::U64:
+			{
+				data_type = TACType::U64;
+				break;
+			}
 			default:
 			{
 				DEBUG_PANIC("tac cast ");
@@ -472,6 +482,16 @@ public:
 			case ASTExpressionType::I64:
 			{
 				value = convert_i64_expr(expr->expr,expr->data_type);
+				break;
+			}
+			case ASTExpressionType::U32:
+			{
+				value = convert_u32_expr(expr->expr,expr->data_type);
+				break;
+			}
+			case ASTExpressionType::U64:
+			{
+				value = convert_u64_expr(expr->expr,expr->data_type);
 				break;
 			}
 			case ASTExpressionType::FUNCTION_CALL:
@@ -586,9 +606,19 @@ public:
 				data_type = TACType::I64;
 				break;
 			}
+			case DataType::U32:
+			{
+				data_type = TACType::U32;
+				break;
+			}
+			case DataType::U64:
+			{
+				data_type = TACType::U64;
+				break;
+			}
 			default:
 			{
-				DEBUG_PANIC(" huh ");
+				DEBUG_PANIC(" unsupported data type in convert variable expr => TAC ");
 				break;
 			}
 		}
@@ -628,6 +658,19 @@ public:
 				
 				//DEBUG_PANIC("the fuckery tac");
 				data_type = TACType::I64;
+				break;
+			}
+			case DataType::U32:
+			{
+				//DEBUG_PANIC("the fuckery tac");
+				data_type = TACType::U32;
+				break;
+			}
+			case DataType::U64:
+			{
+				
+				//DEBUG_PANIC("the fuckery tac");
+				data_type = TACType::U64;
 				break;
 			}
 			default:
@@ -676,6 +719,16 @@ public:
 				data_type = TACType::I64;
 				break;
 			}
+			case DataType::U32:
+			{
+				data_type = TACType::U32;
+				break;
+			}
+			case DataType::U64:
+			{
+				data_type = TACType::U64;
+				break;
+			}
 			default:
 			{
 				DEBUG_PANIC("tac cast ");
@@ -710,7 +763,50 @@ public:
 		mem = alloc(sizeof(TACValue));
 		TACValue *tac_dst = new(mem)TACValue(TACValueType::VARIABLE,tac_var);
 		tac_dst->add_type(data_type);
+
+		if( (cast_expr->data_type == DataType::I32 and cast_expr->rhs->data_type == DataType::U32) or (cast_expr->data_type == DataType::I64 and cast_expr->rhs->data_type == DataType::U64))
+		{
+			tac_result->add_type(data_type);
+			mem = alloc(sizeof(TACCopyInst));
+			TACCopyInst *tac_cast = new(mem)TACCopyInst(tac_dst,tac_result);
+			tac_cast->add_type(data_type);
+
+			mem = alloc(sizeof(TACInstruction));
+			this->inst->push_back(new(mem) TACInstruction(TACInstructionType::COPY,tac_cast));
+		}
+		else if( (cast_expr->data_type == DataType::I32 and (cast_expr->rhs->data_type == DataType::I64 or cast_expr->rhs->data_type == DataType::U64 ) ) or (cast_expr->data_type == DataType::U32 and (cast_expr->rhs->data_type == DataType::I64 or cast_expr->rhs->data_type == DataType::U64 ) ) )
+		{	
+			tac_result->add_type(data_type);
+			mem = alloc(sizeof(TACTruncateInst));
+			TACTruncateInst *tac_cast = new(mem)TACTruncateInst(tac_dst,tac_result);
+			tac_cast->add_type(data_type);
+
+			mem = alloc(sizeof(TACInstruction));
+			this->inst->push_back(new(mem) TACInstruction(TACInstructionType::TRUNCATE,tac_cast));
+		}
+		else if( cast_expr->rhs->data_type == DataType::I32 or cast_expr->rhs->data_type == DataType::I64 )
+		{
+			tac_result->add_type(data_type);
+			mem = alloc(sizeof(TACSignExtendInst));
+			TACSignExtendInst *tac_cast = new(mem)TACSignExtendInst(tac_dst,tac_result);
+			tac_cast->add_type(data_type);
+
+			mem = alloc(sizeof(TACInstruction));
+			this->inst->push_back(new(mem) TACInstruction(TACInstructionType::SIGN_EXTEND,tac_cast));
+		}
+		else
+		{
+			tac_result->add_type(data_type);
+			mem = alloc(sizeof(TACZeroExtendInst));
+			TACZeroExtendInst *tac_cast = new(mem)TACZeroExtendInst(tac_dst,tac_result);
+			tac_cast->add_type(data_type);
+
+			mem = alloc(sizeof(TACInstruction));
+			this->inst->push_back(new(mem) TACInstruction(TACInstructionType::ZERO_EXTEND,tac_cast));
+		}
 		
+		/*
+
 		switch (cast_expr->data_type)
 		{
 			case DataType::I32:
@@ -741,6 +837,7 @@ public:
 				break;
 			}
 		}
+		*/
 
 
 		return tac_dst;
@@ -1090,6 +1187,61 @@ public:
 		TACConstant *tac_const = new(mem) TACConstant(TACConstantType::I64,constant);
 		return tac_const;
 	}
+
+
+
+
+
+
+
+	TACValue *convert_u32_expr(void *expr,DataType expr_type)
+	{
+		TACConstant *tac_const = convert_u32_constant((ASTU32Expr *)expr);
+		void *mem = alloc(sizeof(TACValue));
+		TACValue *tac_value = new(mem)TACValue(TACValueType::CONSTANT,tac_const);
+		tac_value->add_type(TACType::U32);
+		
+		return tac_value;
+	}
+
+
+	TACConstant *convert_u32_constant(ASTU32Expr *expr)
+	{
+		void *mem = alloc(sizeof(unsigned int));
+		unsigned int *constant = new(mem) unsigned int;
+		*constant = expr->value;
+		mem = alloc(sizeof(TACConstant));
+		TACConstant *tac_const = new(mem) TACConstant(TACConstantType::U32,constant);
+		return tac_const;
+	}
+
+
+
+
+	TACValue *convert_u64_expr(void *expr,DataType expr_type)
+	{
+		TACConstant *tac_const = convert_u64_constant((ASTU64Expr *)expr);
+		void *mem = alloc(sizeof(TACValue));
+		TACValue *tac_value = new(mem)TACValue(TACValueType::CONSTANT,tac_const);
+		tac_value->add_type(TACType::U64);
+		
+		return tac_value;
+	}
+
+
+	TACConstant *convert_u64_constant(ASTU64Expr *expr)
+	{
+		void *mem = alloc(sizeof(unsigned long int));
+		unsigned long int *constant = new(mem) unsigned long int;
+		*constant = expr->value;
+		mem = alloc(sizeof(TACConstant));
+		TACConstant *tac_const = new(mem) TACConstant(TACConstantType::U64,constant);
+		return tac_const;
+	}
+
+
+
+
 
 
 	TACUnaryOperator get_unary_op(ASTUnaryOperator op)

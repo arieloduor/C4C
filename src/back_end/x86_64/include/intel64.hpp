@@ -20,6 +20,8 @@ enum class ASMInstructionType
 	LABEL,
 	CALL,
 	MOVSX,
+	MOVZX,
+	MOVZEROEXTEND
 };
 
 #include "../../include/asm_ast.hpp"
@@ -89,6 +91,8 @@ enum class ASMImmediateType
 {
 	I32,
 	I64,
+	U32,
+	U64,
 };
 
 class ASMImmediate
@@ -202,6 +206,54 @@ public:
 	}
 
 };
+
+
+
+
+
+class ASMMovZxInst
+{
+public:
+	ASMOperand *dst;
+	ASMOperand *src;
+	ASMType data_type;
+
+	void add_type(ASMType data_type)
+	{
+		this->data_type = data_type;
+	}
+
+	ASMMovZxInst(ASMOperand *dst,ASMOperand *src)
+	{
+		this->dst = dst;
+		this->src = src;
+	}
+
+};
+
+
+
+
+class ASMMovZeroExtendInst
+{
+public:
+	ASMOperand *dst;
+	ASMOperand *src;
+	ASMType data_type;
+
+	void add_type(ASMType data_type)
+	{
+		this->data_type = data_type;
+	}
+
+	ASMMovZeroExtendInst(ASMOperand *dst,ASMOperand *src)
+	{
+		this->dst = dst;
+		this->src = src;
+	}
+
+};
+
 
 
 
