@@ -17,6 +17,8 @@ enum class TACType
 {
 	I32 = 1,
 	I64,
+	U32,
+	U64,
 };
 
 
@@ -130,6 +132,7 @@ enum class TACInstructionType
 	FUNCTION_CALL,
 	SIGN_EXTEND,
 	TRUNCATE,
+	ZERO_EXTEND,
 };
 
 
@@ -239,6 +242,29 @@ public:
 	}
 
 	TACSignExtendInst(TACValue *dst,TACValue *src)
+	{
+		this->dst = dst;
+		this->src = src;
+	}
+};
+
+
+
+
+
+class TACZeroExtendInst
+{
+public:
+	TACValue *dst;
+	TACValue *src;
+	TACType data_type;
+
+	void add_type(TACType data_type)
+	{
+		this->data_type = data_type;
+	}
+
+	TACZeroExtendInst(TACValue *dst,TACValue *src)
 	{
 		this->dst = dst;
 		this->src = src;
@@ -431,6 +457,8 @@ enum class TACConstantType
 {
 	I32,
 	I64,
+	U32,
+	U64,
 };
 
 class TACConstant

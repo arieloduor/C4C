@@ -15,7 +15,6 @@
 #include "back_end/x86_64/include/tac_to_intel64.hpp"
 #include "back_end/x86_64/include/pseudo.hpp"
 #include "back_end/x86_64/include/fixup.hpp"
-#include "utils/include/string.h"
 
 #include "back_end/x86_64/include/codegen.hpp"
 
@@ -32,7 +31,7 @@ int main(int argc,char *argv[])
 	std::string processed_output = preprocessor.run();
 	preprocessor.print_errors();
 	
-	DEBUG_PRINT("processed output is: ", processed_output);
+	//DEBUG_PRINT("processed output is: ", processed_output);
 	Lexer lexer(file_name,processed_output);
 	std::vector<Tokens> tokens = lexer.scan_tokens();
 	lexer.print_errors();

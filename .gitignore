@@ -3,4 +3,5 @@ target
 tests
 c4_pilot
 ssh.sh
-
+*.m
+a.out

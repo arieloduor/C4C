@@ -319,6 +319,26 @@ public:
 				write_body("\tjge ");
 				break;
 			}
+			case ASMCondition::BELOW:
+			{
+				write_body("\tjb ");
+				break;
+			}
+			case ASMCondition::BELOW_EQUAL:
+			{
+				write_body("\tjbe ");
+				break;
+			}
+			case ASMCondition::ABOVE:
+			{
+				write_body("\tja ");
+				break;
+			}
+			case ASMCondition::ABOVE_EQUAL:
+			{
+				write_body("\tjae ");
+				break;
+			}
 		}
 
 		write_body(inst->label + "\n");
@@ -348,6 +368,26 @@ public:
 			case ASMCondition::GREATER_EQUAL:
 			{
 				write_body("\tsetge ");
+				break;
+			}
+			case ASMCondition::BELOW:
+			{
+				write_body("\tsetb ");
+				break;
+			}
+			case ASMCondition::BELOW_EQUAL:
+			{
+				write_body("\tsetbe ");
+				break;
+			}
+			case ASMCondition::ABOVE:
+			{
+				write_body("\tseta ");
+				break;
+			}
+			case ASMCondition::ABOVE_EQUAL:
+			{
+				write_body("\tsetae ");
 				break;
 			}
 		}
@@ -681,6 +721,16 @@ public:
 				gen_i64_immediate((long int *)asm_imm->value);
 				break;
 			}
+			case ASMImmediateType::U32:
+			{
+				gen_u32_immediate((unsigned int *)asm_imm->value);
+				break;
+			}
+			case ASMImmediateType::U64:
+			{
+				gen_u64_immediate((unsigned long int *)asm_imm->value);
+				break;
+			}
 		}
 	}
 
@@ -691,6 +741,16 @@ public:
 	}
 	
 	void gen_i64_immediate(long int *value)
+	{
+		write_body(std::to_string(*value));
+	}
+
+	void gen_u32_immediate(unsigned int *value)
+	{
+		write_body(std::to_string(*value));
+	}
+	
+	void gen_u64_immediate(unsigned long int *value)
 	{
 		write_body(std::to_string(*value));
 	}

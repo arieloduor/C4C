@@ -1,5 +1,8 @@
 //@include "include_test/test1.rs" /* The include_test folder was created to test for absolute path finding*/
 
+
+/*
+
 struct Task:
     i32 pid
     i32 uid
@@ -25,4 +28,41 @@ pub fn main()->i32:
     i64 val64 = add_i64(200,106)
 
     return cast<i32>(val64) - (cast<i32>(tmp) - ret)
+:*/
+
+
+
+
+
+pub fn main()->i32:
+    u64 i = 0
+
+    if i >= 0:
+        i = 85
+    :
+    else:
+        i = 90
+    :
+
+    i = i + 10
+
+    return cast<i32>(i)
 :
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

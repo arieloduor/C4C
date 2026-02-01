@@ -108,6 +108,11 @@ public:
 				fix_mov_inst((ASMMovInst *)inst->instruction);
 				break;
 			}
+			case ASMInstructionType::MOVZEROEXTEND:
+			{
+				fix_mov_zero_extend_inst((ASMMovZeroExtendInst *)inst->instruction);
+				break;
+			}
 			case ASMInstructionType::ADD:
 			{
 				fix_add_inst((ASMAddInst *)inst->instruction);
@@ -135,6 +140,44 @@ public:
 	void fix_return_inst(ASMRetInst *inst)
 	{
 	}
+
+
+	void fix_mov_zero_extend_inst(ASMMovZeroExtendInst *inst)
+	{
+		if(inst->dst->type == ASMOperandType::REGISTER)
+		{
+			this->inst->at(this->index)->type = ASMInstructionType::MOV;
+		}
+		else if(inst->dst->type == ASMOperandType::STACK)
+		{
+			//ASMStack *src_stack = (ASMStack *)inst->src->operand;
+
+			void *mem = alloc(sizeof(ASMRegister));
+			ASMRegister *asm_reg = new(mem) ASMRegister(ASMRegisterType::R11,4);
+			
+			mem = alloc(sizeof(ASMOperand));
+			ASMOperand *asm_scratch_reg = new(mem) ASMOperand(ASMOperandType::REGISTER,asm_reg);
+
+			mem = alloc(sizeof(ASMMovInst));
+			ASMMovInst *asm_mov = new(mem) ASMMovInst(asm_scratch_reg,inst->src);
+			asm_mov->add_type(ASMType::I32);
+
+			mem = alloc(sizeof(ASMInstruction));
+			ASMInstruction *asm_inst = new(mem) ASMInstruction(ASMInstructionType::MOV,asm_mov);
+			this->inst->at(this->index++) = asm_inst;
+
+
+			mem = alloc(sizeof(ASMMovInst));
+			asm_mov = new(mem) ASMMovInst(inst->dst,asm_scratch_reg);
+			asm_mov->add_type(ASMType::I64);
+
+			mem = alloc(sizeof(ASMInstruction));
+			asm_inst = new(mem) ASMInstruction(ASMInstructionType::MOV,asm_mov);
+
+			this->inst->insert(this->inst->begin() + this->index,asm_inst);
+		}
+	}
+
 	
 	void fix_mov_inst(ASMMovInst *inst)
 	{

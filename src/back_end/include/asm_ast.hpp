@@ -72,6 +72,8 @@ enum class ASMType
 {
 	I32,
 	I64,
+	U32,
+	U64,
 };
 
 class ASMGlobalVariable

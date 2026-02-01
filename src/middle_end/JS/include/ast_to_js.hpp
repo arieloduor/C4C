@@ -65,7 +65,7 @@ public:
 
 	void convert_function(ASTFunctionDecl *decl)
 	{
-		write_body("fn " + decl->ident + "(");
+		write_body("function " + decl->ident + "(");
 
 		int arg_length = decl->arguments.size();
 		int i = 0;

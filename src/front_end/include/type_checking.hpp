@@ -508,6 +508,16 @@ public:
                 DEBUG_PRINT(" vardecl =>  "," i64 ");
                 break;
             }
+            case ASTDataType::U32:
+            {
+                DEBUG_PRINT(" vardecl =>  "," u32 ");
+                break;
+            }
+            case ASTDataType::U64:
+            {
+                DEBUG_PRINT(" vardecl =>  "," u64 ");
+                break;
+            }
             default:
             {
                 DEBUG_PANIC(" the gods have spoken!!");
@@ -635,6 +645,124 @@ public:
                 }
                 break;
             }
+            case ASTDataType::U32:
+            {
+                if (decl->is_extern)
+                {
+                    if(decl->expr != nullptr)
+                    {
+                        fatal(" local extern variable declared with an initializer is illegal");
+                    }
+
+                    if(symbol_table->lookup(decl->ident))
+                    {
+                        if(symbol_table->get_type(decl->ident) != DataType::U32)
+                        {
+                            fatal("function redeclared as a variable");
+                        }
+                    }
+                    else
+                    {
+                        Symbol symbol(decl->ident,DataType::U32);
+                        symbol.add_global(true);
+                        symbol.add_init(false);
+                        symbol_table->add(decl->ident,symbol);
+                    }
+                }
+                else if(decl->is_static)
+                {
+                    Symbol symbol(decl->ident,DataType::U32);
+                    symbol.add_global(false);
+                    symbol.add_init(false);
+
+                    if (decl->expr == nullptr)
+                    {
+                        symbol.add_init(true);
+                        symbol.add_int_init(0);
+                    }
+                    else if (decl->expr->type == ASTExpressionType::U32)
+                    {
+                        symbol.add_init(true);
+                        symbol.add_int_init(get_i32_init(decl->expr->expr));
+                    }
+                    else
+                    {
+                        fatal(" non-constant initializer used on local static variable");
+                    }
+
+                    symbol_table->add(decl->ident,symbol);
+                }
+
+                else
+                {
+                    symbol_table->add(decl->ident,Symbol(decl->ident,DataType::U32,true));
+
+                    if (decl->expr != nullptr)
+                    {
+                        check_expr(decl->expr,symbol_table);
+                    }
+                }
+                break;
+            }
+            case ASTDataType::U64:
+            {
+                if (decl->is_extern)
+                {
+                    if(decl->expr != nullptr)
+                    {
+                        fatal(" local extern variable declared with an initializer is illegal");
+                    }
+
+                    if(symbol_table->lookup(decl->ident))
+                    {
+                        if(symbol_table->get_type(decl->ident) != DataType::U64)
+                        {
+                            fatal("function redeclared as a variable");
+                        }
+                    }
+                    else
+                    {
+                        Symbol symbol(decl->ident,DataType::U64);
+                        symbol.add_global(true);
+                        symbol.add_init(false);
+                        symbol_table->add(decl->ident,symbol);
+                    }
+                }
+                else if(decl->is_static)
+                {
+                    Symbol symbol(decl->ident,DataType::U64);
+                    symbol.add_global(false);
+                    symbol.add_init(false);
+
+                    if (decl->expr == nullptr)
+                    {
+                        symbol.add_init(true);
+                        symbol.add_int_init(0);
+                    }
+                    else if (decl->expr->type == ASTExpressionType::U32)
+                    {
+                        symbol.add_init(true);
+                        symbol.add_int_init(get_i32_init(decl->expr->expr));
+                    }
+                    else
+                    {
+                        fatal(" non-constant initializer used on local static variable");
+                    }
+
+                    symbol_table->add(decl->ident,symbol);
+                }
+
+                else
+                {
+                    symbol_table->add(decl->ident,Symbol(decl->ident,DataType::U64,true));
+
+                    if (decl->expr != nullptr)
+                    {
+                        check_expr(decl->expr,symbol_table);
+                    }
+                }
+                break;
+            }
             default:
             {
                 DEBUG_PANIC("unsupported type in vardecl ");
@@ -707,6 +835,20 @@ public:
                 expr->add_data_type(i64_expr->data_type);
                 break;
             }
+            case ASTExpressionType::U32:
+            {
+                ASTU32Expr *u32_expr = (ASTU32Expr *)expr->expr;
+                u32_expr->add_data_type(DataType::U32);
+                expr->add_data_type(u32_expr->data_type);
+                break;
+            }
+            case ASTExpressionType::U64:
+            {
+                ASTU64Expr *u64_expr = (ASTU64Expr *)expr->expr;
+                u64_expr->add_data_type(DataType::U64);
+                expr->add_data_type(u64_expr->data_type);
+                break;
+            }
             case ASTExpressionType::CAST:
             {
                 ASTCastExpr *cast_expr = (ASTCastExpr *)expr->expr;
@@ -723,6 +865,17 @@ public:
                     {
                         DEBUG_PANIC("the fuckery");
                         cast_expr->add_data_type(DataType::I64);
+                        break;
+                    }
+                    case ASTDataType::U32:
+                    {
+                        cast_expr->add_data_type(DataType::U32);
+                        break;
+                    }
+                    case ASTDataType::U64:
+                    {
+                        DEBUG_PANIC("the fuckery");
+                        cast_expr->add_data_type(DataType::U64);
                         break;
                     }
                     default:
@@ -750,6 +903,14 @@ public:
                         {
                             fatal(" i64 used with an i32 => perform cast for this to compile");
                         }
+                        else if(assign_expr->rhs->data_type == DataType::U64)
+                        {
+                            fatal(" u64 used with an i32 => perform cast for this to compile");
+                        }
+                        if(assign_expr->rhs->data_type == DataType::U32)
+                        {
+                            fatal(" u32 used with an i32 => perform cast for this to compile");
+                        }
                         else
                         {
                             assign_expr->add_data_type(DataType::I32);
@@ -773,9 +934,130 @@ public:
                                 fatal(" i32 used with an i64 => perform cast for this to compile");
                             }
                         }
+                        else if(assign_expr->rhs->data_type == DataType::U32)
+                        {
+                            fatal(" u32 used with an i64 => perform cast for this to compile");
+                        }
+                        else if(assign_expr->rhs->data_type == DataType::U64)
+                        {
+                            fatal(" u64 used with an i64 => perform cast for this to compile");
+                        }
                         else
                         {
                             assign_expr->add_data_type(DataType::I64);
+                        }
+                        break;
+                    }
+                    case DataType::U32:
+                    {
+                        if(assign_expr->rhs->data_type == DataType::I64)
+                        {
+                            if(assign_expr->rhs->type == ASTExpressionType::I64)
+                            {
+                                assign_expr->rhs->type = ASTExpressionType::U32;
+                                ASTI64Expr *i64_expr = (ASTI64Expr *)assign_expr->rhs->expr;
+                                
+                                if(i64_expr->value >= 0 && i64_expr->value <= (std::pow(2,32)))
+                                {
+                                    i64_expr->add_data_type(DataType::U32);
+                                    assign_expr->rhs->add_data_type(DataType::U32);
+                                    assign_expr->add_data_type(DataType::U32);
+                                }
+                                else
+                                {
+                                    fatal(" i64 used with an u32 => perform cast for this to compile");    
+                                }
+                            }
+                            else
+                            {
+                                fatal(" i64 used with an u32 => perform cast for this to compile");
+                            }
+                            
+                        }
+                        else if(assign_expr->rhs->data_type == DataType::U64)
+                        {
+                            fatal(" u64 used with an u32 => perform cast for this to compile");
+                        }
+                        else if(assign_expr->rhs->data_type == DataType::I32)
+                        {
+                            if(assign_expr->rhs->type == ASTExpressionType::I32)
+                            {
+                                assign_expr->rhs->type = ASTExpressionType::U32;
+                                ASTI32Expr *i32_expr = (ASTI32Expr *)assign_expr->rhs->expr;
+                                
+                                if(i32_expr->value >= 0)
+                                {
+                                    i32_expr->add_data_type(DataType::U32);
+                                    assign_expr->rhs->add_data_type(DataType::U32);
+                                    assign_expr->add_data_type(DataType::U32);
+                                }
+                                else
+                                {
+                                    fatal(" i32 used with an u32 => perform cast for this to compile");
+                                }
+                            }
+                            else
+                            {
+                                fatal(" i32 used with an u32 => perform cast for this to compile");
+                            }
+                        }
+                        else
+                        {
+                            assign_expr->add_data_type(DataType::U32);
+                        }
+                        break;
+                    }
+                    case DataType::U64:
+                    {
+                        if(assign_expr->rhs->data_type == DataType::I32)
+                        {
+                            if(assign_expr->rhs->type == ASTExpressionType::I32)
+                            {
+                                assign_expr->rhs->type = ASTExpressionType::U64;
+                                ASTI32Expr *i32_expr = (ASTI32Expr *)assign_expr->rhs->expr;
+                                
+                                if(i32_expr->value >= 0)
+                                {
+                                    i32_expr->add_data_type(DataType::U64);
+                                    assign_expr->rhs->add_data_type(DataType::U64);
+                                    assign_expr->add_data_type(DataType::U64);
+                                }
+                                else
+                                {
+                                    fatal(" i32 used with an u64 => perform cast for this to compile");
+                                }
+                            }
+                            else
+                            {
+                                fatal(" i32 used with an u64 => perform cast for this to compile");
+                            }
+                        }
+                        else if(assign_expr->rhs->data_type == DataType::I64)
+                        {
+                            if(assign_expr->rhs->type == ASTExpressionType::I64)
+                            {
+                                assign_expr->rhs->type = ASTExpressionType::U64;
+                                ASTI64Expr *i64_expr = (ASTI64Expr *)assign_expr->rhs->expr;
+                                
+                                if(i64_expr->value >= 0)
+                                {
+                                    i64_expr->add_data_type(DataType::U64);
+                                    assign_expr->rhs->add_data_type(DataType::U64);
+                                    assign_expr->add_data_type(DataType::U64);
+                                }
+                                else
+                                {
+                                    fatal(" i32 used with an u64 => perform cast for this to compile");
+                                }
+                            }
+                            else
+                            {
+                                fatal(" i32 used with an u64 => perform cast for this to compile");
+                            }
+                        }
+                        else
+                        {
+                            assign_expr->add_data_type(DataType::U64);
                         }
                         break;
                     }
@@ -796,7 +1078,7 @@ public:
                 //fatal(" fatal  -> " + var_expr->ident);
                 std::string name = var_expr->ident;
                 
-                if (symbol_table->lookup(name)  and symbol_table->get_type(name) != DataType::I32  and symbol_table->get_type(name) != DataType::I64)
+                if (symbol_table->lookup(name)  and not is_data_type(symbol_table->get_type(name)) )
                 {
                     fatal("function used as variable");    
                 }
@@ -927,9 +1209,95 @@ public:
                                         }
                                         break;
                                     }
+                                    case DataType::U32:
+                                    {
+                                        if(binary_expr->rhs->data_type == DataType::I32)
+                                        {
+                                            if(binary_expr->rhs->type == ASTExpressionType::I32)
+                                            {
+                                                binary_expr->rhs->type = ASTExpressionType::U32;
+                                                ASTI32Expr *i32_expr = (ASTI32Expr *)binary_expr->rhs->expr;
+
+                                                if(i32_expr->value >= 0)
+                                                {
+                                                    i32_expr->add_data_type(DataType::U32);
+                                                    binary_expr->rhs->add_data_type(DataType::U32);
+                                                    binary_expr->add_data_type(DataType::U32);
+                                                }
+                                                else
+                                                {
+                                                    fatal(" i32 used with an u32 => perform cast for this to compile");
+                                                }
+                                            }
+                                            else
+                                            {
+                                                fatal(" i32 used with an u32 => perform cast for this to compile");
+                                            }
+                                        }
+                                        else
+                                        {
+                                            binary_expr->add_data_type(DataType::I64);
+                                        }
+                                        break;
+                                    }
+                                    case DataType::U64:
+                                    {
+                                        if(binary_expr->rhs->data_type == DataType::I32)
+                                        {
+                                            if(binary_expr->rhs->type == ASTExpressionType::I32)
+                                            {
+                                                binary_expr->rhs->type = ASTExpressionType::U64;
+                                                ASTI32Expr *i32_expr = (ASTI32Expr *)binary_expr->rhs->expr;
+                                                
+                                                if(i32_expr->value >= 0)
+                                                {
+                                                    i32_expr->add_data_type(DataType::U64);
+                                                    binary_expr->rhs->add_data_type(DataType::U64);
+                                                    binary_expr->add_data_type(DataType::U64);
+                                                }
+                                                else
+                                                {
+                                                    fatal(" i32 used with an u64 => perform cast for this to compile");
+                                                }
+                                            }
+                                            else
+                                            {
+                                                fatal(" i32 used with an u64 => perform cast for this to compile");
+                                            }
+                                        }
+                                        else if(binary_expr->rhs->data_type == DataType::I64)
+                                        {
+                                            if(binary_expr->rhs->type == ASTExpressionType::I64)
+                                            {
+                                                binary_expr->rhs->type = ASTExpressionType::U64;
+                                                ASTI64Expr *i64_expr = (ASTI64Expr *)binary_expr->rhs->expr;
+                                                
+                                                if(i64_expr->value >= 0)
+                                                {
+                                                    i64_expr->add_data_type(DataType::U64);
+                                                    binary_expr->rhs->add_data_type(DataType::U64);
+                                                    binary_expr->add_data_type(DataType::U64);
+                                                }
+                                                else
+                                                {
+                                                    fatal(" i32 used with an u64 => perform cast for this to compile");
+                                                }
+                                            }
+                                            else
+                                            {
+                                                fatal(" i32 used with an u64 => perform cast for this to compile");
+                                            }
+                                        }
+                                        else
+                                        {
+                                            binary_expr->add_data_type(DataType::U64);
+                                        }
+                                        break;
+                                    }
                                     default:
                                     {
-                                        fatal("unsupported datatype encountered");
+                                        std::cout << "   TYPE   :  "  << (int)binary_expr->lhs->data_type << std::endl;
+                                        fatal("binary expr case : unsupported datatype encountered");
                                         break;
                                     }
                                 }
@@ -945,6 +1313,25 @@ public:
                 }
 
                 expr->add_data_type(binary_expr->lhs->data_type);
+                break;
+            }
+        }
+    }
+
+    bool is_data_type(DataType type)
+    {
+        switch(type)
+        {
+            case DataType::I32:
+            case DataType::U32:
+            case DataType::I64:
+            case DataType::U64:
+            {
+                return true;
+            }
+            default:
+            {
+                return false;
                 break;
             }
         }

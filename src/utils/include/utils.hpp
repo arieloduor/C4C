@@ -1,3 +1,4 @@
+
 #ifndef C4C_UTILS_H
 #define C4C_UTILS_H
 
@@ -25,5 +26,7 @@
 #ifndef DEBUG_PANIC
 #define DEBUG_PANIC(x) DEBUG_PRINT((x),""); std::exit(5)
 #endif
+
+#include "types.hpp"
 
 #endif
