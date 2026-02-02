@@ -1,5 +1,5 @@
-#ifndef C4C_TOML_PARSER_HPP
-#define C4C_TOML_PARSER_HPP
+#ifndef C4C_TOML_LEXER_HPP
+#define C4C_TOML_LEXER_HPP
 
 #include <string>
 #include <vector>
@@ -490,6 +490,7 @@ private:
             {
                 consume();
                 consume();
+                update_row(1);
                 buff += ' ';
             }
             if (match_token('\\'))
@@ -700,6 +701,7 @@ private:
         }
 
         update_col(skipped);
+        update_row(1);
     }
 
     inline void panic(std::string msg)

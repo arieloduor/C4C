@@ -1,6 +1,5 @@
-#ifndef C4C_TOML_PARSER_H
-#define C4C_TOML_PARSER_H
-
+#ifndef C4C_TOML_PARSER_HPP
+#define C4C_TOML_PARSER_HPP
 
 #include <vector>
 #include <string>
@@ -8,11 +7,12 @@
 #include <iostream>
 #include "toml_token.hpp"
 
-
-#define panic(msg) do { \
-    printf("An error occured: %s", msg) ; \
-    exit(1); \
-} while(0)
+#define panic(msg)                           \
+    do                                       \
+    {                                        \
+        printf("An error occured: %s", msg); \
+        exit(1);                             \
+    } while (0)
 
 #define debug_print(tok) printf("DEBUG: for token %s of token name : %s on line: %ld\n", (tok).lexeme.c_str(), (tok).get_name().c_str(), (tok).line)
 
@@ -58,19 +58,22 @@ class TomlParser
         return this->index < this->tokens_length;
     }
 
-
     TomlTokens peek(int lookahead = 0)
     {
         int idx = this->index + lookahead;
         if (idx >= this->tokens_length)
         {
-            panic("Out of bound!");
+            print_error("Out of bound!", peek());
         }
         return this->tokens[idx];
     }
 
     inline TomlTokens consume()
     {
+        if (this->index + 1 > this->tokens_length)
+        {
+            print_error("Unexpected end of file", peek());
+        }
         return this->tokens[this->index++];
     }
 
@@ -99,14 +102,14 @@ class TomlParser
         {
             parse_key_value(current_table);
         }
-        else if(expect_token(TomlTokenType::TOK_EOF))
+        else if (expect_token(TomlTokenType::TOK_EOF))
         {
             consume();
             return;
         }
         else
         {
-            panic("Unexpected token in statement");
+            print_error("Unexpected token in statement", peek());
         }
     }
 
@@ -117,7 +120,7 @@ class TomlParser
         auto keys = parse_key_path();
 
         if (!expect_token(TomlTokenType::TOK_RDBRACKET))
-            panic("Expected ']]' after array table name");
+            print_error("Expected ']]' after array table name", peek());
 
         consume(); // consume ']]'
 
@@ -136,7 +139,7 @@ class TomlParser
             current = &current->table_value[key];
 
             if (current->type != TomlType::Table)
-                panic("Key path conflicts with non-table");
+                print_error("Key path conflicts with non-table", peek());
         }
 
         const std::string &array_key = keys.back();
@@ -152,7 +155,7 @@ class TomlParser
         TomlValue &array = current->table_value[array_key];
 
         if (array.type != TomlType::Array)
-            panic("Array-of-table conflicts with non-array");
+            print_error("Array-of-table conflicts with non-array", peek());
 
         // Create new table and append
         TomlValue new_table;
@@ -171,7 +174,7 @@ class TomlParser
         TomlValue arr;
         arr.type = TomlType::Array;
 
-        if(expect_token(TomlTokenType::TOK_RDBRACKET,1))
+        if (expect_token(TomlTokenType::TOK_RDBRACKET, 1))
         {
             consume();
             return arr;
@@ -180,7 +183,7 @@ class TomlParser
         while (true)
         {
             TomlValue main;
-            
+
             while (true)
             {
                 TomlValue v = parse_value();
@@ -194,19 +197,19 @@ class TomlParser
                 break;
             }
 
-            if(expect_token(TomlTokenType::TOK_RDBRACKET))
+            if (expect_token(TomlTokenType::TOK_RDBRACKET))
             {
                 break;
             }
 
-            if(not expect_token(TomlTokenType::TOK_RBRACKET))
+            if (not expect_token(TomlTokenType::TOK_RBRACKET))
             {
-                panic("Expected ']' but found none");
+                print_error("Expected ']' but found none", peek());
             }
-            consume(); //conusme the left brace;
+            consume(); // conusme the left brace;
 
             arr.array_value.push_back(main);
-            if(expect_token(TomlTokenType::TOK_COMMA) and expect_token(TomlTokenType::TOK_LBRACKET, 1))
+            if (expect_token(TomlTokenType::TOK_COMMA) and expect_token(TomlTokenType::TOK_LBRACKET, 1))
             {
                 consume(); // consume comma
                 consume(); // consume [
@@ -215,11 +218,11 @@ class TomlParser
             break;
         }
 
-        if(not expect_token(TomlTokenType::TOK_RDBRACKET))
+        if (not expect_token(TomlTokenType::TOK_RDBRACKET))
         {
-            panic("Expected ']]' but found none");
+            print_error("Expected ']]' but found none", peek());
         }
-        consume(); //consume
+        consume(); // consume
 
         return arr;
     }
@@ -227,9 +230,9 @@ class TomlParser
     TomlValue parse_array()
     {
         consume(); // '['
-        while(expect_token(TomlTokenType::TOK_NEWLINE))
+        while (expect_token(TomlTokenType::TOK_NEWLINE))
         {
-            consume(); //to support multiline array
+            consume(); // to support multiline array
         }
 
         TomlValue arr;
@@ -263,14 +266,14 @@ class TomlParser
             break;
         }
 
-        while(expect_token(TomlTokenType::TOK_NEWLINE))
+        while (expect_token(TomlTokenType::TOK_NEWLINE))
         {
-            consume(); //to support multiline array
+            consume(); // to support multiline array
         }
 
         if (!expect_token(TomlTokenType::TOK_RBRACKET))
         {
-            panic("Expected ']' at end of array");
+            print_error("Expected ']' at end of array", peek());
         }
 
         consume();
@@ -284,7 +287,7 @@ class TomlParser
         auto keys = parse_key_path();
 
         if (!expect_token(TomlTokenType::TOK_RBRACKET))
-            panic("Expected ']' after table name");
+            print_error("Expected ']' after table name", peek());
 
         consume();
 
@@ -298,7 +301,7 @@ class TomlParser
             current = &current->table_value[key];
 
             if (current->type != TomlType::Table)
-                panic("Table name conflicts with non-table");
+                print_error("Table name conflicts with non-table", peek());
         }
 
         return current;
@@ -308,9 +311,9 @@ class TomlParser
     {
 
         consume();
-        while(expect_token(TomlTokenType::TOK_NEWLINE))
+        while (expect_token(TomlTokenType::TOK_NEWLINE))
         {
-            consume(); //to support multiline array
+            consume(); // to support multiline array
         }
 
         TomlValue table;
@@ -329,7 +332,7 @@ class TomlParser
 
             if (!expect_token(TomlTokenType::TOK_EQUAL))
             {
-                panic("Expected '=' after identifier");
+                print_error("Expected '=' after identifier", peek());
             }
             consume(); // consume the equal sign
 
@@ -346,19 +349,19 @@ class TomlParser
             break;
         }
 
-        if(expect_token(TomlTokenType::TOK_COMMA))
+        if (expect_token(TomlTokenType::TOK_COMMA))
         {
-            consume(); //accept trailing comma
+            consume(); // accept trailing comma
         }
 
-        while(expect_token(TomlTokenType::TOK_NEWLINE))
+        while (expect_token(TomlTokenType::TOK_NEWLINE))
         {
-            consume(); //to support multiline inline table
+            consume(); // to support multiline inline table
         }
-        
+
         if (!expect_token(TomlTokenType::TOK_RBRACE))
         {
-            panic("Expected } but got none");
+            print_error("Expected } but got none", peek());
         }
         consume(); // consume the right brace;
 
@@ -434,7 +437,7 @@ class TomlParser
             consume();
             break;
         default:
-            panic("Invalid value");
+            print_error("Invalid value", peek());
         }
 
         return v;
@@ -445,7 +448,7 @@ class TomlParser
         std::vector<std::string> keys = parse_key_path();
 
         if (!expect_token(TomlTokenType::TOK_EQUAL))
-            panic("Expected '=' after key");
+            print_error("Expected '=' after key", peek());
 
         consume();
 
@@ -466,7 +469,7 @@ class TomlParser
             consume();
             if (!expect_token(TomlTokenType::TOK_IDENTIFIER))
             {
-                panic("Expected an identifier after the dot");
+                print_error("Expected an identifier after the dot", peek());
             }
 
             keys.push_back(consume().lexeme);
@@ -496,7 +499,7 @@ class TomlParser
 
             if (current_table->type != TomlType::Table)
             {
-                panic("Key path conflicts with non-table");
+                print_error("Key path conflicts with non-table", peek());
             }
         }
 
@@ -572,6 +575,18 @@ class TomlParser
         }
     }
 
+    void print_error(std::string message, TomlTokens token)
+    {
+        int col = token.col;
+        int line = token.line;
+
+        std::cout << "Error parsing token: " << message << std::endl;
+        token.print();
+        std::cout << "near line " << line << " column " << col << std::endl;
+
+        exit(1);
+    }
+
 public:
     std::string file_name;
     std::vector<TomlTokens> tokens;
@@ -617,4 +632,4 @@ public:
     }
 };
 
-#endif //C4C_TOML_PARSER_H
+#endif // C4C_TOML_PARSER_HPP

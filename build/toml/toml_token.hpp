@@ -1,5 +1,5 @@
-#ifndef C4C_TOML_TOKENS_H
-#define C4C_TOML_TOKENS_H
+#ifndef C4C_TOML_TOKENS_HPP
+#define C4C_TOML_TOKENS_HPP
 
 #include <string>
 
@@ -119,4 +119,4 @@ public:
     }
 };
 
-#endif // C4C_TOML_TOKENS_H
+#endif // C4C_TOML_TOKENS_HPP
