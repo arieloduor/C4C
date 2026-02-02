@@ -2,6 +2,7 @@
 #include <fstream>
 #include <sstream>
 #include "toml_lexer.hpp"
+#include "toml_parser.hpp"
 
 // Function to read file content
 std::string read_file(const char *filename)
@@ -39,17 +40,21 @@ int main(int argc, char *argv[])
     TomlLexer lexer(toml_content);
     std::vector<TomlTokens> tokens = lexer.scan_tokens();
 
-    // Print all tokens
-    std::cout << "\nTokens Generated:" << std::endl;
-    std::cout << "-----------------" << std::endl;
+    // // Print all tokens
+    // std::cout << "\nTokens Generated:" << std::endl;
+    // std::cout << "-----------------" << std::endl;
 
-    for (size_t i = 0; i < tokens.size(); i++)
-    {
-        std::cout << "[" << i << "] ";
-        tokens[i].print();
-    }
+    // for (size_t i = 0; i < tokens.size(); i++)
+    // {
+    //     std::cout << "[" << i << "] ";
+    //     tokens[i].print();
+    // }
 
-    std::cout << "\nTotal tokens: " << tokens.size() << std::endl;
+    // std::cout << "\nTotal tokens: " << tokens.size() << std::endl;
+
+
+    TomlParser parser("test.toml", tokens);
+    parser.parse_toml();
 
     return 0;
 }

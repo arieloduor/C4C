@@ -9,32 +9,17 @@
 enum DateState
 {
     YEAR,
-    YEAR_DASH,
     MONTH,
-    MONTH_DASH,
     DAY,
 
-    DATE_DONE,
-
     TIME_HOUR,
-    TIME_COLON1,
     TIME_MIN,
-    TIME_COLON2,
     TIME_SEC,
 
-    FRACTION_DOT,
     FRACTION,
 
-    TIME_DONE,
-
-    OFFSET_Z,
-    OFFSET_SIGN,
     OFFSET_HOUR,
-    OFFSET_COLON,
     OFFSET_MIN,
-
-    ACCEPT,
-    ERROR
 };
 
 class TomlLexer
@@ -59,7 +44,7 @@ private:
 
         while (is_integer() or match_token('+') or match_token('-') or match_token('e') or match_token('E') or (match_token('_') and is_integer(1)))
         {
-            if(match_token('e') or match_token('E'))
+            if (match_token('e') or match_token('E'))
             {
                 tok_type = TomlTokenType::TOK_FLOAT;
             }
@@ -183,8 +168,6 @@ private:
     {
 
         std::string buff;
-        bool seen_time = false;
-        bool seen_offset = false;
         bool seen_date = false;
         bool is_timeonly = false;
 
@@ -201,7 +184,7 @@ private:
         }
         else
         {
-            return; 
+            return;
         }
 
         while (true)
@@ -235,10 +218,9 @@ private:
                 if (peek() == 'T')
                 {
                     buff += consume();
-                    seen_time = true;
                     state = TIME_HOUR;
                 }
-                else if(!is_timeonly)
+                else if (!is_timeonly)
                 {
                     add_token(buff, TomlTokenType::TOK_LOCAL_DATE);
                     return;
@@ -285,15 +267,14 @@ private:
                 else if (peek() == '+' || peek() == '-')
                 {
                     buff += consume();
-                    seen_offset = true;
                     state = OFFSET_HOUR;
                 }
-                else if(seen_date)
+                else if (seen_date)
                 {
                     add_token(buff, TomlTokenType::TOK_LOCAL_DATETIME);
                     return;
                 }
-                else if(!seen_date)
+                else if (!seen_date)
                 {
                     add_token(buff, TomlTokenType::TOK_LOCAL_TIME);
                     return;
@@ -346,7 +327,6 @@ private:
         has_errors = true;
         add_token(buff, TomlTokenType::TOK_ERROR);
         return;
-
     }
 
     inline void handle_escape(std::string &buff)
@@ -416,7 +396,7 @@ private:
             return c - 'a' + 10;
         if (c >= 'A' and c <= 'F')
             return c - 'A' + 10;
-        return 0; 
+        return 0;
     }
 
     void append_utf8(std::string &buff, uint32_t cp)
@@ -649,7 +629,7 @@ private:
         return (this->src[idx] >= 'a' and this->src[idx] <= 'f') or (this->src[idx] >= 'A' and this->src[idx] <= 'F');
     }
 
-        inline bool is_char_hex(char tok)
+    inline bool is_char_hex(char tok)
     {
 
         return (tok >= 'a' and tok <= 'f') or (tok >= 'A' and tok <= 'F');
@@ -722,12 +702,12 @@ private:
         update_col(skipped);
     }
 
-
     inline void panic(std::string msg)
     {
         printf("An error occured %s", msg.c_str());
         exit(1);
     }
+
 public:
     inline std::vector<TomlTokens> scan_tokens()
     {

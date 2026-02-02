@@ -1,3 +1,5 @@
+#ifndef C4C_TOML_TOKENS_H
+#define C4C_TOML_TOKENS_H
 
 #include <string>
 
@@ -7,22 +9,22 @@ std::string TOML_TOKEN_NAME[] = {
     "TOK_EOF",
     "TOK_ERROR",
     "TOK_NAN",
-    "TOK_INF", 
-    
+    "TOK_INF",
+
     /* Identifiers */
     "TOK_IDENTIFIER", // bare keys: foo, bar_baz, hello123
     "TOK_STRING",     // "value" or 'value'
 
     /* Literals */
-    "TOK_INTEGER",  // 42, -7
-    "TOK_FLOAT",    // 3.14, 1e10
-    "TOK_BOOLEAN",  // true, false
+    "TOK_INTEGER", // 42, -7
+    "TOK_FLOAT",   // 3.14, 1e10
+    "TOK_BOOLEAN", // true, false
 
-    "TOK_DATETIME", // 1979-05-27T07:32:00Z 
+    "TOK_DATETIME",   // 1979-05-27T07:32:00Z
     "TOK_LOCAL_DATE", // 1979-05-27
-    "TOK_LOCAL_TIME", 
-    "TOK_LOCAL_DATETIME", 
-    "TOK_OFFSET_DATETIME", 
+    "TOK_LOCAL_TIME",
+    "TOK_LOCAL_DATETIME",
+    "TOK_OFFSET_DATETIME",
 
     /* Symbols */
     "TOK_EQUAL", // =
@@ -38,9 +40,7 @@ std::string TOML_TOKEN_NAME[] = {
     "TOK_RBRACE",    // }
 
     /* Newlines */
-    "TOK_NEWLINE"
-};
-
+    "TOK_NEWLINE"};
 
 enum class TomlTokenType
 {
@@ -55,14 +55,14 @@ enum class TomlTokenType
     TOK_STRING,     // "value" or 'value'
 
     /* Literals */
-    TOK_INTEGER,  // 42, -7
-    TOK_FLOAT,    // 3.14, 1e10
-    TOK_BOOLEAN,  // true, false
-    TOK_DATETIME, // 1979-05-27T07:32:00Z (optional early)
+    TOK_INTEGER,    // 42, -7
+    TOK_FLOAT,      // 3.14, 1e10
+    TOK_BOOLEAN,    // true, false
+    TOK_DATETIME,   // 1979-05-27T07:32:00Z (optional early)
     TOK_LOCAL_DATE, // 1979-05-27
-    TOK_LOCAL_TIME, 
-    TOK_LOCAL_DATETIME, 
-    TOK_OFFSET_DATETIME, 
+    TOK_LOCAL_TIME,
+    TOK_LOCAL_DATETIME,
+    TOK_OFFSET_DATETIME,
 
     /* Symbols */
     TOK_EQUAL, // =
@@ -83,15 +83,16 @@ enum class TomlTokenType
 
 class TomlTokens
 {
+
+public:
     TomlTokenType type;
-    std::string lexeme; 
+    std::string lexeme;
     size_t length;
     size_t line;
     size_t col;
     size_t start;
     size_t end;
 
-public:
     TomlTokens(TomlTokenType type, std::string string, int start, int end, int col, int line = 0)
     {
         this->type = type;
@@ -103,11 +104,13 @@ public:
     }
 
     TomlTokens() = default;
-    std::string get_type()
+
+    std::string get_name()
     {
         int type = static_cast<int>(this->type);
         return TOML_TOKEN_NAME[type];
     }
+
     void print()
     {
         int type = static_cast<int>(this->type);
@@ -115,3 +118,5 @@ public:
         return;
     }
 };
+
+#endif // C4C_TOML_TOKENS_H
