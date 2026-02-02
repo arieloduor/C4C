@@ -1,3 +1,36 @@
+/****************************************************************************************************\
+ * FILE: toml_parser.hpp                                                                            *
+ * AUTHOR: Michael Kamau                                                                            *
+ *                                                                                                  *
+ * PURPOSE: This file implements a recursive-descent parser for TOML documents.                     *
+ * The parser consumes a linear stream of lexical tokens produced by the TomlLexer                  *
+ * and constructs a hierarchical TomlDocument representing the TOML data structure.                 *
+ *                                                                                                  *
+ * The parser handles all TOML constructs including:                                                *
+ * - Key-value pairs: simple assignments and dotted key paths                                       *
+ * - Tables: [table] sections and nested [table.subtable] hierarchies                               *
+ * - Array of tables: [[array.of.tables]] declarations                                              *
+ * - Arrays: homogeneous collections [...] with comma-separated values                              *
+ * - Inline tables: {...} structured data on a single line                                          *
+ * - All value types: strings, integers, floats, booleans, and datetime values                      *
+ *                                                                                                  *
+ * The parser operates in a single pass, maintaining a cursor over the token stream.                *
+ *                                                                                                  *
+ * USAGE: To parse a TOML document:                                                                 *
+ *        1. Tokenize with TomlLexer: `TomlLexer lexer(source); tokens = lexer.scan_tokens();`      *
+ *        2. Create parser: `TomlParser parser("file.toml", tokens);`                               *
+ *        3. Parse: `TomlDocument doc = parser.parse_toml();`                                       *
+ *                                                                                                  *
+ * OUTPUT: Returns a TomlDocument with a root TomlValue (always a table) containing                 *
+ *         the entire parsed TOML structure                                                         *
+ *                                                                                                  *
+ * DESIGN NOTES:                                                                                    *
+ * - Parsing strategy: recursive descent with lookahead                                             *
+ * - Error handling: fatal errors halt parsing immediately                                          *
+ * - Token consumption: strict left-to-right without backtracking                                   *
+ *                                                                                                  *
+ ****************************************************************************************************/
+
 #ifndef C4C_TOML_PARSER_HPP
 #define C4C_TOML_PARSER_HPP
 

@@ -1,3 +1,39 @@
+/****************************************************************************************************\
+ * FILE: toml_lexer.hpp                                                                             *
+ * AUTHOR: Michael kamau                                                                            *
+ *                                                                                                  *
+ * PURPOSE: This file implements a lexical analyzer (lexer) for the TOML file format.               *
+ * The lexer consumes a raw string containing TOML source code and produces a stream                *
+ * of lexical tokens (TomlTokens objects) that represent the syntactic structure.                   *
+ *                                                                                                  *
+ * The lexer handles all TOML lexical elements including:                                           *
+ * - Identifiers and string literals (single, double, and multiline quoted strings)                 *
+ * - Numeric literals: integers, floats, and scientific notation                                    *
+ * - Special number formats: hexadecimal (0x), octal (0o), binary (0b)                              *
+ * - Boolean and special float values: true, false, nan, inf                                        *
+ * - Date and time values: local dates, local times, local datetimes, and offset datetimes          *
+ * - Operators and delimiters: = . , [ ] [[ ]] { }                                                  *
+ * - Comments: lines beginning with #                                                               *
+ * - Unicode escape sequences in strings (\uXXXX and \UXXXXXXXX)                                    *
+ *                                                                                                  *
+ * The lexer uses a single-pass scanning approach with lookahead to identify token types.           *
+ * Date/time parsing employs a finite state machine to validate and extract datetime components.    *
+ *                                                                                                  *
+ * USAGE: To use the lexer, instantiate it with the source code string:                             *
+ *        `TomlLexer lexer(source_code);`                                                           *
+ *        Then call: `std::vector<TomlTokens> tokens = lexer.scan_tokens();`                        *
+ *                                                                                                  *
+ * OUTPUT: Returns a vector of TomlTokens representing the entire document, ending with TOK_EOF     *
+ *                                                                                                  *
+ * DESIGN NOTES:                                                                                    *
+ * - Scanning strategy: Character-at-a-time with multi-character lookahead                          *
+ * - Date/time parsing: Deterministic finite state machine for validation                           *
+ * - Error handling: Collects errors during lexing, continues to find more issues                   *
+ * - String handling: Supports escape sequences and multiline quoted strings                        *
+ * - Unicode support: Full UTF-8 encoding for Unicode escape sequences in strings                   *
+ *                                                                                                  *
+ ****************************************************************************************************/
+
 #ifndef C4C_TOML_LEXER_HPP
 #define C4C_TOML_LEXER_HPP
 
@@ -6,22 +42,52 @@
 #include <stdint.h>
 #include "toml_token.hpp"
 
+/**
+ * DateState Enumeration
+ * 
+ * Defines states for the date/time parsing finite state machine.
+ * Used by make_date() to validate and extract datetime components in order:
+ * YEAR -> MONTH -> DAY -> (optional) TIME_HOUR -> TIME_MIN -> TIME_SEC ->
+ * (optional) FRACTION -> (optional) OFFSET_HOUR -> OFFSET_MIN
+ * 
+ * States track expected format at each position, ensuring proper validation
+ * of ISO 8601 datetime formats used by TOML.
+ */
 enum DateState
 {
-    YEAR,
-    MONTH,
-    DAY,
+    YEAR,           // Parsing 4-digit year (YYYY)
+    MONTH,          // Parsing 2-digit month (MM)
+    DAY,            // Parsing 2-digit day (DD)
 
-    TIME_HOUR,
-    TIME_MIN,
-    TIME_SEC,
+    TIME_HOUR,      // Parsing 2-digit hour (HH)
+    TIME_MIN,       // Parsing 2-digit minute (MM)
+    TIME_SEC,       // Parsing 2-digit second (SS)
 
-    FRACTION,
+    FRACTION,       // Parsing fractional seconds (.NNNNNN)
 
-    OFFSET_HOUR,
-    OFFSET_MIN,
+    OFFSET_HOUR,    // Parsing offset hour (HH)
+    OFFSET_MIN,     // Parsing offset minute (MM)
 };
 
+/**
+ * TomlLexer Class
+ * 
+ * Implements lexical analysis for TOML documents. Scans character-by-character
+ * through the source code and emits tokens representing lexical units.
+ *
+ * The lexer maintains internal state including:
+ * - Current position (pos), line, and column for location tracking
+ * - The source string and its length
+ * - A vector of accumulated tokens
+ * - Error flag for reporting lexical errors
+ * 
+ * Key features:
+ * - Automatic handling of integer formats (decimal, hex, octal, binary)
+ * - Datetime recognition with complete FSM validation
+ * - String parsing with escape sequence support and Unicode handling
+ * - Comment skipping (lines starting with #)
+ * - Lookahead-based token discrimination
+ */
 class TomlLexer
 {
     int col;
@@ -711,6 +777,14 @@ private:
     }
 
 public:
+    /**
+     * Scans the entire source and returns a vector of tokens.
+     * 
+     * Iterates through the source using scan_token() until end of input,
+     * then appends a TOK_EOF token to mark the end of the token stream.
+     * 
+     * Returns: std::vector<TomlTokens> containing all tokens from the source
+     */
     inline std::vector<TomlTokens> scan_tokens()
     {
         while (not is_end())
@@ -723,6 +797,14 @@ public:
         return this->tokens;
     }
 
+    /**
+     * Constructor for TomlLexer.
+     * 
+     * Initializes the lexer with source code and sets up all internal state.
+     * 
+     * Parameters:
+     * - file_source: The TOML source code as a std::string
+     */
     TomlLexer(std::string file_source)
     {
         this->col = 0;
@@ -737,6 +819,16 @@ public:
         this->token_count = 0;
     }
 
+    /**
+     * Main token scanning dispatch function.
+     * 
+     * Examines the current character and routes to the appropriate parsing
+     * function (make_identifier, make_number, make_string, etc.).
+     * Handles single-character tokens and structural elements.
+     * 
+     * This function is called repeatedly by scan_tokens() to process the
+     * entire input stream.
+     */
     inline void scan_token()
     {
         char token = peek();
