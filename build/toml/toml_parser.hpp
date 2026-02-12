@@ -116,7 +116,7 @@ class TomlParser
         return token.type == type;
     }
 
-    void parse_statement(TomlValue *&current_table)
+    void parse_statement(TomlValue *&current_table, TomlValue *root)
     {
         while (expect_token(TomlTokenType::TOK_NEWLINE))
         {
@@ -125,11 +125,11 @@ class TomlParser
 
         if (expect_token(TomlTokenType::TOK_LDBRACKET))
         {
-            current_table = parse_array_table(current_table);
+            current_table = parse_array_table(root);
         }
         else if (expect_token(TomlTokenType::TOK_LBRACKET))
         {
-            current_table = parse_table(current_table);
+            current_table = parse_table(root);
         }
         else if (expect_token(TomlTokenType::TOK_IDENTIFIER))
         {
@@ -651,7 +651,7 @@ public:
                 continue;
             }
 
-            parse_statement(current_table);
+            parse_statement(current_table, &doc.root);
         }
 
         print_document(doc);

@@ -1,113 +1,30 @@
-############################################
-# Basic key-value pairs
-############################################
+[package]
+name = "blog_os"
+version = "0.1.0"
+edition = "2021"
 
-title = "TOML Lexer Test"
-enabled = true
-count = 42
-pi = 3.14159
-neg = -17
-exp1 = 1e3
-exp2 = -2.5E-4
+[dependencies]
+bootloader = "0.9.22"
+lazy_static = { version = "1.4.0", features = ["spin_no_std"] }
+spin = "0.5.2"
+volatile = "0.2.6"
+x86_64 = "0.14.2"
+uart_16550 = "0.2.0"
+pic8259 = "0.10.1"
 
-############################################
-# Strings
-############################################
-
-basic = "Hello, world"
-escaped = "Line1\nLine2\tTabbed \"Quoted\""
-unicode = "Unicode ✓ α β γ"
-
-multiline_basic = """
-This is a multi-line string.
-It can contain "quotes".
-Even empty lines.
-
-End.
-"""
-
-############################################
-# Arrays
-############################################
-
-numbers = [1, 2, 3, 4]
-mixed = [1, "two", 3.0, true]
-nested = [[1, 2], [3, 4]]
-
-############################################
-# Dates and Times (THIS IS THE IMPORTANT PART)
-############################################
-
-# Local date
-ld1 = 1979-05-27
-ld2 = 2024-02-29   # leap year
-
-# Local time
-lt1 = 07:32:00
-lt2 = 23:59:59
-lt3 = 00:00:00.5
-lt4 = 00:00:00.999999
-
-# Local datetime
-ldt1 = 1979-05-27T07:32:00
-ldt2 = 1979-05-27T00:32:00.5
-ldt3 = 1979-05-27T00:32:00.999999
-
-# Offset datetime (UTC)
-odt1 = 1979-05-27T07:32:00Z
-
-# Offset datetime (positive offset)
-odt2 = 1979-05-27T00:32:00+07:00
-odt3 = 1979-05-27T00:32:00.5+07:00
-
-# Offset datetime (negative offset)
-odt4 = 1979-05-27T00:32:00-07:00
-odt5 = 1979-05-27T00:32:00.999999-07:00
-
-############################################
-# Tables
-############################################
-
-[owner]
-name = "Tom Preston-Werner"
-dob = 1979-05-27T07:32:00Z
-
-############################################
-# Dotted keys
-############################################
-
-database.server = "192.168.1.1"
-database.port = 8001
-database.enabled = true
-database.started_at = 2023-10-01T12:00:00+03:00
-
-############################################
-# Array of tables
-############################################
-
-[[products]]
-name = "Hammer"
-price = 10.99
-created = 2024-01-01
-
-[[products]]
-name = "Nail"
-price = 0.10
-created = 2024-01-01T08:00:00
-
-############################################
-# Edge cases (valid TOML)
-############################################
-
-# Whitespace around tokens
- spaced   =    1979-05-27T07:32:00Z
-
-# Arrays of datetimes
-schedule = [
-  2024-01-01T00:00:00Z,
-  2024-06-01T12:30:00+02:00,
-  2024-12-31T23:59:59.999999-05:00
+[package.metadata.bootimage]
+test-args = [
+    "-device", "isa-debug-exit,iobase=0xf4,iosize=0x04",
+    "-serial", "stdio",
+    "-display", "none"
 ]
+test-success-exit-code = 33  # (0x10 << 1) | 1
+test-timeout = 5  # (in seconds)
 
-# Inline table
-inline = { start = 2024-01-01T00:00:00Z, end = 2024-01-02T00:00:00Z }
+[[test]]
+name = "stack_overflow"
+harness = false
+
+[[test]]
+name = "should_panic"
+harness = false
