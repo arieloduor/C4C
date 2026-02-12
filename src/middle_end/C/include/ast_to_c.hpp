@@ -488,12 +488,20 @@ public:
 				data_type = "double ";
 				break;
 			}
+			case ASTDataType::ENUM:
+			{
+				data_type = "enum " + stmt->type->ident + " ";
+				break;
+			}
 			default:
 			{
-				DEBUG_PANIC("tac cast ");
+
+				DEBUG_PANIC("unsupported type ");
 				break;
 			}
 		}
+
+		std::cout << "enum :===> " << stmt->type->ident << std::endl;
 
 		for(int i = 0; i < stmt->type->ptr; i++)
 		{

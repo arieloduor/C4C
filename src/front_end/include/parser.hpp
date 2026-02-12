@@ -980,10 +980,11 @@ public:
 	{
 		void *mem = alloc(sizeof(ASTType));
 		ASTType *type = new(mem) ASTType();
+		ASTDataType data_type;
+		std::string ident;
 
 		if (match_type())
 		{
-			ASTDataType data_type;
 			if (is_token_string("char"))
 			{
 				data_type = ASTDataType::CHAR;
@@ -1013,13 +1014,27 @@ public:
 			{
 				DEBUG_PRINT("  parse type : sanity check ",(*(peek())).get_type() + " =>  " + (*(peek())).string);
 			}
-
-			type->add_type(data_type);
+		}
+		else if(is_identifier())
+		{
+			std::string base = consume().string;
+			if(this->table.is_enum(base))
+			{
+				ident = base;
+				data_type = ASTDataType::ENUM;
+			}
+			else
+			{
+				fatal("identifier used as a type");
+			}		
 		}
 		else
 		{
 			fatal("unsupported types ");
 		}
+
+		type->add_type(data_type);
+		type->add_ident(ident);
 
 		while (is_token("*"))
 		{
@@ -1133,6 +1148,12 @@ public:
 				{
 					ASTStatementType stmt_type = ASTStatementType::EXPR;
 					ASTExpression *stmt_stmt = parse_expr(0);
+					stmt = new(mem) ASTStatement(stmt_type,stmt_stmt);
+				}
+				else if(is_identifier())
+				{
+					ASTStatementType stmt_type = ASTStatementType::VARDECL;
+					ASTVarDecl *stmt_stmt = parse_vardecl();
 					stmt = new(mem) ASTStatement(stmt_type,stmt_stmt);
 				}
 				else

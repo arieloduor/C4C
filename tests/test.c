@@ -8,8 +8,6 @@ enum Color
 int puts(char  *str);
 int main()
 {
-	char ch = 65;
-	char *ptr = "hello world";
-	puts(ptr);
-	return Color_BLUE;
+	enum Color color = Color_BLUE;
+	return color;
 }

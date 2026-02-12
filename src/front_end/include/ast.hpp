@@ -271,6 +271,8 @@ enum class ASTDataType
 	U64,
 	F32,
 	F64,
+	STRUCT,
+	ENUM,
 };
 
 
@@ -278,6 +280,7 @@ class ASTType
 {
 public:
 	ASTDataType type;
+	std::string ident;
 	int ptr;
 	std::vector<ASTExpression *> array;
 	//ASTBox box;
@@ -299,6 +302,11 @@ public:
 	inline void add_array(ASTExpression *array)
 	{
 		this->array.push_back(array);
+	}
+
+	void add_ident(std::string ident)
+	{
+		this->ident = ident;
 	}
 
 	~ASTType()

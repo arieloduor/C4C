@@ -61,10 +61,11 @@ native "C":
 :
 
 fn main()->i32:
-    char ch = 65
-    char *ptr = "hello world"
-    puts(ptr)
-    return Color.BLUE
+    //char ch = 65
+    //char *ptr = "hello world"
+    //puts(ptr)
+    Color color = Color.BLUE
+    return color
 :
 
 /*
