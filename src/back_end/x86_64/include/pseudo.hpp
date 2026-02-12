@@ -73,6 +73,11 @@ public:
 				replace_mov_inst((ASMMovInst *)inst->instruction);
 				break;
 			}
+			case ASMInstructionType::LEA:
+			{
+				replace_lea_inst((ASMLeaInst *)inst->instruction);
+				break;
+			}
 			case ASMInstructionType::ADD:
 			{
 				replace_add_inst((ASMAddInst *)inst->instruction);
@@ -107,6 +112,12 @@ public:
 
 	}
 	
+	void replace_lea_inst(ASMLeaInst *inst)
+	{
+		replace_operand(inst->dst);
+		replace_operand(inst->src);
+	}
+
 	void replace_mov_inst(ASMMovInst *inst)
 	{
 		replace_operand(inst->dst);

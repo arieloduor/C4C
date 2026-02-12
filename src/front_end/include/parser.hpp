@@ -59,6 +59,53 @@
  * strictly forward; backtracking is not supported.
  */
 
+ enum class AggregateType
+ {
+	STRUCT,
+	ENUM,
+ };
+
+
+class AggregateTable
+{
+public:
+    std::map<std::string,AggregateType> table;
+    bool lookup(std::string name) 
+    {
+        if (this->table.find(name) == this->table.end())
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    void add(std::string name,AggregateType type)
+    {
+        //this->map[name] = symbol;
+        this->table.emplace(name, type);
+    }
+
+    AggregateType get(std::string name)
+    {
+        return this->table.at(name);
+        //return this->map[name];
+    }
+
+	bool is_enum(std::string name)
+	{
+		return get(name) == AggregateType::ENUM;
+	}
+
+	bool is_struct(std::string name)
+	{
+		return get(name) == AggregateType::STRUCT;
+	}
+
+};
+
+
+
 class Parser
 {
 public:
@@ -68,6 +115,7 @@ public:
 	int index = 0;
 	ASTProgram *program;
 	Arena *arena;
+	AggregateTable table;
 
 	Parser(std::string file_name,std::vector<Tokens> tokens,Arena *arena)
 	{
@@ -105,6 +153,10 @@ public:
 		else if (keyword == "cast")
 		{
 			return TokenType::TOKEN_KEYWORD_CAST;
+		}
+		else if (keyword == "char")
+		{
+			return TokenType::TOKEN_KEYWORD_CHAR;
 		}
 		else if (keyword == "continue")
 		{
@@ -185,6 +237,10 @@ public:
 		{
 			return TokenType::TOKEN_RBRACKET;
 		}
+		else if (symbol == "@")
+		{
+			return TokenType::TOKEN_AT;
+		}
 		else if (symbol == "->")
 		{
 			return TokenType::TOKEN_RETPARAM;
@@ -192,6 +248,10 @@ public:
 		else if (symbol == "*")
 		{
 			return TokenType::TOKEN_MUL;
+		}
+		else if (symbol == "&")
+		{
+			return TokenType::TOKEN_BITWISE_AND;
 		}
 		else if (symbol == ":")
 		{
@@ -256,6 +316,10 @@ public:
 		else if (symbol == ",")
 		{
 			return TokenType::TOKEN_COMMA;
+		}
+		else if (symbol == ".")
+		{
+			return TokenType::TOKEN_DOT;
 		}
 
 		return TokenType::TOKEN_EOF;
@@ -369,6 +433,10 @@ public:
 			return true;
 		}
 		else if (token.type == TokenType::TOKEN_KEYWORD_U64)
+		{
+			return true;
+		}
+		else if (token.type == TokenType::TOKEN_KEYWORD_CHAR)
 		{
 			return true;
 		}
@@ -676,7 +744,9 @@ public:
 		expect_keyword("struct");
 		if (match_identifier())
 		{
-			decl->add_ident(consume().string);
+			std::string ident = consume().string;
+			this->table.add(ident,AggregateType::STRUCT);
+			decl->add_ident(ident);
 		}
 
 		expect_symbol(":");
@@ -718,7 +788,9 @@ public:
 		expect_keyword("enum");
 		if (match_identifier())
 		{
-			decl->add_ident(consume().string);
+			std::string ident = consume().string;
+			this->table.add(ident,AggregateType::ENUM);
+			decl->add_ident(ident);
 		}
 
 		expect_symbol(":");
@@ -912,7 +984,12 @@ public:
 		if (match_type())
 		{
 			ASTDataType data_type;
-			if (is_token_string("i32"))
+			if (is_token_string("char"))
+			{
+				data_type = ASTDataType::CHAR;
+				consume();
+			}
+			else if (is_token_string("i32"))
 			{
 				data_type = ASTDataType::I32;
 				consume();
@@ -1052,7 +1129,7 @@ public:
 					ASTVarDecl *stmt_stmt = parse_vardecl();
 					stmt = new(mem) ASTStatement(stmt_type,stmt_stmt);
 				}
-				else if ( is_token("=",1) or is_token("(",1))
+				else if ( is_token("=",1) or is_token("(",1) or is_token("@",1))
 				{
 					ASTStatementType stmt_type = ASTStatementType::EXPR;
 					ASTExpression *stmt_stmt = parse_expr(0);
@@ -1301,7 +1378,7 @@ public:
 
 	bool is_binary()
 	{
-		return is_token("-") or is_token("+") or is_token("*") or is_token("%") or is_token("/") or is_token("<") or is_token(">") or is_token("<=") or is_token(">=") or is_token("||") or is_token("&&")  or is_token("=");
+		return is_token("-") or is_token("+") or is_token("*") or is_token("%") or is_token("/") or is_token("<") or is_token(">") or is_token("<=") or is_token(">=") or is_token("||") or is_token("&&")  or is_token("=")or is_token("==");
 	}
 
 	/**
@@ -1409,6 +1486,11 @@ public:
 			case TokenType::TOKEN_OR:
 			{
 				return ASTBinaryOperator::OR;
+				break;
+			}
+			case TokenType::TOKEN_EQUAL:
+			{
+				return ASTBinaryOperator::EQUAL;
 				break;
 			}
 		}
@@ -1529,6 +1611,13 @@ public:
 			}
 
 		}
+		else if (is_token_type(TokenType::TOKEN_LITERAL_STRING))
+		{
+			void *mem = alloc(sizeof(ASTStringExpr));
+			ASTStringExpr *string_expr = new(mem) ASTStringExpr(consume().string);
+			mem = alloc(sizeof(ASTExpression));
+			expr = new(mem) ASTExpression(ASTExpressionType::STRING,string_expr);
+		}
 		else if(is_unary())
 		{
 			void *mem = alloc(sizeof(ASTUnaryExpr));
@@ -1613,6 +1702,16 @@ public:
 			expr = new(mem) ASTExpression(ASTExpressionType::CAST,expr2);
 
 		}
+		else if(is_token("&"))
+		{
+			expect_symbol("&");
+			void *mem = alloc(sizeof(ASTAddressOfExpr));
+			ASTAddressOfExpr *expr1 = new(mem) ASTAddressOfExpr(parse_factor());
+			
+			mem = alloc(sizeof(ASTExpression));
+			expr = new(mem) ASTExpression(ASTExpressionType::ADDRESS_OF,expr1);
+
+		}
 		else if(is_token("("))
 		{
 			expect_symbol("(");
@@ -1645,19 +1744,24 @@ public:
 
 				mem = alloc(sizeof(ASTExpression));
 				expr = new(mem) ASTExpression(ASTExpressionType::FUNCTION_CALL,expr1);
-			}
-			else if(is_token("::",1))
+			}/*
+			else if(is_token("@",1))
 			{
-				void *mem = alloc(sizeof(ASTResolutionExpr));
-				ASTResolutionExpr *expr1 = new(mem) ASTResolutionExpr();
-				expr1->add_ident(consume().string);
 
-				while (is_token("::"))
+				std::vector<std::string> intrinsics;
+				intrinsics.push_back(consume().string);
+
+				void *mem = alloc(sizeof(ASTVariableExpr));
+				ASTVariableExpr *expr1 = new(mem) ASTVariableExpr(consume().string);
+
+
+				while (is_token("@"))
 				{
-					expect_symbol("::");					
+					expect_symbol("@");					
 					if (match_identifier())
 					{
-						expr1->add_ident(consume().string);
+						intrinsics.push_back(consume().string);
+						expect_symbol("(")
 					}
 					else
 					{
@@ -1667,13 +1771,68 @@ public:
 
 				mem = alloc(sizeof(ASTExpression));
 				expr = new(mem) ASTExpression(ASTExpressionType::RESOLUTION,expr1);
+			}*/
+			else if(is_token(".",1))
+			{
+				std::string base = consume().string;
+				if(this->table.is_enum(base))
+				{
+					expect_symbol(".");
+					void *mem = alloc(sizeof(ASTEnumAccessExpr));
+					ASTEnumAccessExpr *expr1 = new(mem) ASTEnumAccessExpr(base,consume().string);
+					mem = alloc(sizeof(ASTExpression));
+					expr = new(mem) ASTExpression(ASTExpressionType::ENUM_ACCESS,expr1);
+				}
+				else
+				{
+					fatal("invalid use of . operator");
+				}
+
 			}
 			else
 			{
 				void *mem = alloc(sizeof(ASTVariableExpr));
 				ASTVariableExpr *expr1 = new(mem) ASTVariableExpr(consume().string);
+
 				mem = alloc(sizeof(ASTExpression));
 				expr = new(mem) ASTExpression(ASTExpressionType::VARIABLE,expr1);
+
+
+				while(is_token("@"))
+				{
+					expect_symbol("@");
+
+					std::string ident;
+
+					if(is_identifier())
+					{
+						ident = consume().string;
+					}
+
+					if(ident == "read")
+					{
+						expect_symbol("(");
+						expect_symbol(")");
+						void *mem = alloc(sizeof(ASTPtrReadExpr));
+						ASTPtrReadExpr *expr2 = new(mem) ASTPtrReadExpr(expr);
+		
+						mem = alloc(sizeof(ASTExpression));
+						expr = new(mem) ASTExpression(ASTExpressionType::PTR_READ,expr2);
+					}
+					else if(ident == "write")
+					{
+						expect_symbol("(");
+						void *mem = alloc(sizeof(ASTPtrWriteExpr));
+						ASTPtrWriteExpr *expr2 = new(mem) ASTPtrWriteExpr(expr,parse_expr(0));
+		
+						expect_symbol(")");
+
+						mem = alloc(sizeof(ASTExpression));
+						expr = new(mem) ASTExpression(ASTExpressionType::PTR_WRITE,expr2);
+					}
+				}
+
+				
 			}
 		}
 		else

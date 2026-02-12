@@ -353,6 +353,25 @@ public:
 
                 break;
             }
+            case ASTExpressionType::ADDRESS_OF:
+            {
+                ASTAddressOfExpr *address_of_expr = (ASTAddressOfExpr *)expr->expr;
+                resolve_expr(address_of_expr->expr,ident_map);
+                break;
+            }
+            case ASTExpressionType::PTR_READ:
+            {
+                ASTPtrReadExpr *ptr_read = (ASTPtrReadExpr *)expr->expr;
+                resolve_expr(ptr_read->expr,ident_map);
+                break;
+            }
+            case ASTExpressionType::PTR_WRITE:
+            {
+                ASTPtrWriteExpr *ptr_write = (ASTPtrWriteExpr *)expr->expr;
+                resolve_expr(ptr_write->expr,ident_map);
+                resolve_expr(ptr_write->data,ident_map);
+                break;
+            }
             case ASTExpressionType::VARIABLE:
 			{
                 ASTVariableExpr *var_expr = (ASTVariableExpr *)expr->expr;

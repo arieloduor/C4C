@@ -110,6 +110,11 @@ public:
 				gen_return_inst((ASMRetInst *)inst->instruction);
 				break;
 			}
+			case ASMInstructionType::LEA:
+			{
+				gen_lea_inst((ASMLeaInst *)inst->instruction);
+				break;
+			}
 			case ASMInstructionType::MOV:
 			{
 				gen_mov_inst((ASMMovInst *)inst->instruction);
@@ -236,6 +241,18 @@ public:
 	{
 		fix_mov(inst);
 		write_body("\tmov ");
+		gen_operand(inst->dst);
+		write_body(",");
+		gen_operand(inst->src);
+		write_body("\n");
+		
+	}
+
+
+
+	void gen_lea_inst(ASMLeaInst *inst)
+	{
+		write_body("\tlea ");
 		gen_operand(inst->dst);
 		write_body(",");
 		gen_operand(inst->src);
@@ -473,6 +490,7 @@ public:
 			}
 			default:
 			{
+				std::cout << "type :  " << (int)operand->type <<std::endl;
 			}
 		}
 
@@ -696,6 +714,24 @@ public:
 				else if (asm_reg->size == 8)
 				{
 					write_body("r11");
+				}
+				else
+				{
+					std::cout << (int)asm_reg->type << std::endl;
+					DEBUG_PANIC("unknown register size " + std::to_string(asm_reg->size));
+				}
+				
+				break;
+			}
+			case ASMRegisterType::R12:
+			{
+				if (asm_reg->size == 4)
+				{
+					write_body("r12d");
+				}
+				else if (asm_reg->size == 8)
+				{
+					write_body("r12");
 				}
 				else
 				{

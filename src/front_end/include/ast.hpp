@@ -264,6 +264,7 @@ public:
 
 enum class ASTDataType
 {
+	CHAR,
 	I32,
 	I64,
 	U32,
@@ -450,6 +451,25 @@ public:
 	}
 };
 
+class ASTVarInit
+{
+public:
+	bool is_single = true;
+	ASTExpression *single;
+	std::vector<ASTVarInit *>compound;
+
+	void add_single(ASTExpression *single)
+	{
+		this->is_single = true;
+		this->single = single;
+	}
+
+	void add_compound(ASTVarInit *compound)
+	{
+		this->is_single = false;
+		this->compound.push_back(compound);
+	}
+};
 
 
 class ASTVarDecl
@@ -628,11 +648,18 @@ enum class ASTExpressionType
 	FUNCTION_CALL,
 	I64,
 	CAST,
+	STRING,
 	U32,
 	U64,
 	F32,
 	F64,
 	RESOLUTION,
+	ADDRESS_OF,
+	PTR_READ,
+	PTR_WRITE,
+	ARRAY,
+	ENUM_ACCESS,
+	STRUCT_ACCESS,
 };
 
 
@@ -657,6 +684,8 @@ enum class ASTBinaryOperator
 	GREATER_EQUAL,
 	AND,
 	OR,
+	EQUAL,
+	NOT_EQUAL,
 	None,
 };
 
@@ -673,6 +702,14 @@ public:
 	ASTExpressionType type;
 	void *expr;
 	DataType data_type;
+	PointerType ptr_type;
+
+
+	void add_pointer_type(bool is_ptr,DataType base_type,int ptr_no)
+	{
+		this->ptr_type.set(is_ptr,base_type,ptr_no);
+	}
+
 	void add_data_type(DataType data_type)
 	{
 		this->data_type = data_type;
@@ -682,6 +719,130 @@ public:
 	{
 		this->type = type;
 		this->expr = expr;
+	}
+};
+
+
+
+class ASTAddressOfExpr
+{
+public:
+	ASTExpression *expr;
+	DataType data_type;
+	PointerType ptr_type;
+
+	void add_pointer_type(bool is_ptr,DataType base_type,int ptr_no)
+	{
+		this->ptr_type.set(is_ptr,base_type,ptr_no);
+	}
+
+	void add_data_type(DataType data_type)
+	{
+		this->data_type = data_type;
+	}
+
+	ASTAddressOfExpr(ASTExpression *expr)
+	{
+		this->expr = expr;
+	}
+};
+
+
+
+
+
+class ASTPtrReadExpr
+{
+public:
+	ASTExpression *expr;
+	DataType data_type;
+	PointerType ptr_type;
+
+	void add_pointer_type(bool is_ptr,DataType base_type,int ptr_no)
+	{
+		this->ptr_type.set(is_ptr,base_type,ptr_no);
+	}
+
+	void add_data_type(DataType data_type)
+	{
+		this->data_type = data_type;
+	}
+
+	ASTPtrReadExpr(ASTExpression *expr)
+	{
+		this->expr = expr;
+	}
+};
+
+
+
+class ASTPtrWriteExpr
+{
+public:
+	ASTExpression *expr;
+	ASTExpression *data;
+	DataType data_type;
+	PointerType ptr_type;
+
+	void add_pointer_type(bool is_ptr,DataType base_type,int ptr_no)
+	{
+		this->ptr_type.set(is_ptr,base_type,ptr_no);
+	}
+
+	void add_data_type(DataType data_type)
+	{
+		this->data_type = data_type;
+	}
+
+	ASTPtrWriteExpr(ASTExpression *expr,ASTExpression *data)
+	{
+		this->expr = expr;
+		this->data = data;
+	}
+};
+
+
+
+class ASTArrayExpr
+{
+public:
+	ASTExpression *expr;
+	ASTExpression *index;
+	DataType data_type;
+	PointerType ptr_type;
+
+	void add_pointer_type(bool is_ptr,DataType base_type,int ptr_no)
+	{
+		this->ptr_type.set(is_ptr,base_type,ptr_no);
+	}
+
+	void add_data_type(DataType data_type)
+	{
+		this->data_type = data_type;
+	}
+
+	ASTArrayExpr(ASTExpression *expr,ASTExpression *index)
+	{
+		this->expr = expr;
+		this->index = index;
+	}
+};
+
+
+
+class ASTStringExpr
+{
+public:
+	std::string value;
+	DataType data_type;
+	void add_data_type(DataType data_type)
+	{
+		this->data_type = data_type;
+	}
+
+	ASTStringExpr(std::string value)
+	{
+		this->value = value;
 	}
 };
 
@@ -817,11 +978,41 @@ public:
 
 
 
+
+
+class ASTEnumAccessExpr
+{
+public:
+	std::string base;
+	std::string member;
+	DataType data_type;
+
+	void add_data_type(DataType data_type)
+	{
+		this->data_type = data_type;
+	}
+
+	ASTEnumAccessExpr(std::string base,std::string member)
+	{
+		this->base = base;
+		this->member = member;
+	}
+};
+
+
+
 class ASTVariableExpr
 {
 public:
 	std::string ident;
 	DataType data_type;
+	PointerType ptr_type;
+
+	void add_pointer_type(bool is_ptr,DataType base_type,int ptr_no)
+	{
+		this->ptr_type.set(is_ptr,base_type,ptr_no);
+	}
+
 	void add_data_type(DataType data_type)
 	{
 		this->data_type = data_type;
@@ -840,6 +1031,13 @@ public:
 	ASTUnaryOperator op;
 	ASTExpression *rhs;
 	DataType data_type;
+	PointerType ptr_type;
+
+	void add_pointer_type(bool is_ptr,DataType base_type,int ptr_no)
+	{
+		this->ptr_type.set(is_ptr,base_type,ptr_no);
+	}
+
 	void add_data_type(DataType data_type)
 	{
 		this->data_type = data_type;
@@ -886,6 +1084,14 @@ public:
 	ASTBinaryOperator op;
 	ASTExpression *rhs;
 	DataType data_type;
+	PointerType ptr_type;
+
+	void add_pointer_type(bool is_ptr,DataType base_type,int ptr_no)
+	{
+		this->ptr_type.set(is_ptr,base_type,ptr_no);
+	}
+
+	
 	void add_data_type(DataType data_type)
 	{
 		this->data_type = data_type;
@@ -910,6 +1116,13 @@ public:
 	ASTAssignOperator op;
 	ASTExpression *rhs;
 	DataType data_type;
+	PointerType ptr_type;
+
+	void add_pointer_type(bool is_ptr,DataType base_type,int ptr_no)
+	{
+		this->ptr_type.set(is_ptr,base_type,ptr_no);
+	}
+
 	void add_data_type(DataType data_type)
 	{
 		this->data_type = data_type;
@@ -957,6 +1170,13 @@ public:
 	ASTDataType type;
 	ASTExpression *rhs;
 	DataType data_type;
+	PointerType ptr_type;
+
+	void add_pointer_type(bool is_ptr,DataType base_type,int ptr_no)
+	{
+		this->ptr_type.set(is_ptr,base_type,ptr_no);
+	}
+	
 	void add_data_type(DataType data_type)
 	{
 		this->data_type = data_type;

@@ -252,6 +252,21 @@ public:
 				convert_copy_inst((TACCopyInst *)inst->instruction);
 				break;
 			}
+			case TACInstructionType::LOAD:
+			{
+				convert_load_inst((TACLoadInst *)inst->instruction);
+				break;
+			}
+			case TACInstructionType::STORE:
+			{
+				convert_store_inst((TACStoreInst *)inst->instruction);
+				break;
+			}
+			case TACInstructionType::GET_ADDRESS:
+			{
+				convert_get_address_inst((TACGetAddressInst *)inst->instruction);
+				break;
+			}
 			case TACInstructionType::FUNCTION_CALL:
 			{
 				convert_function_call_inst((TACFunctionCallInst *)inst->instruction);
@@ -643,6 +658,139 @@ public:
 		this->inst->push_back(asm_inst);
 	
 	}
+
+
+
+
+
+	void convert_load_inst(TACLoadInst *inst)
+	{
+		ASMOperand *asm_dst = convert_value(inst->dst);
+		ASMOperand *asm_src = convert_value(inst->src);
+
+
+		void *mem = alloc(sizeof(ASMRegister));
+		ASMRegister *asm_reg = new(mem) ASMRegister(ASMRegisterType::RAX,8);
+		
+
+		mem = alloc(sizeof(ASMOperand));
+		ASMOperand *asm_tmp = new(mem) ASMOperand(ASMOperandType::REGISTER,asm_reg);
+		asm_tmp->add_type(ASMType::I64);
+
+
+
+		
+		mem = alloc(sizeof(ASMMovInst));
+		ASMMovInst *asm_mov = new(mem) ASMMovInst(asm_tmp,asm_src);
+		asm_mov->add_type(ASMType::I64);
+
+
+		mem = alloc(sizeof(ASMInstruction));
+		ASMInstruction *asm_inst = new(mem) ASMInstruction(ASMInstructionType::MOV,asm_mov);
+		this->inst->push_back(asm_inst);
+
+
+
+
+
+
+		mem = alloc(sizeof(ASMStack));
+		ASMStack *stack = new(mem)ASMStack(8,"rax",0);
+
+
+		mem = alloc(sizeof(ASMOperand));
+		ASMOperand *asm_tmp2 = new(mem) ASMOperand(ASMOperandType::STACK,stack);
+		asm_tmp->add_type(ASMType::I64);
+
+
+		mem = alloc(sizeof(ASMMovInst));
+		asm_mov = new(mem) ASMMovInst(asm_dst,asm_tmp2);
+		asm_mov->add_type(asm_dst->data_type);
+
+		
+		mem = alloc(sizeof(ASMInstruction));
+		asm_inst = new(mem) ASMInstruction(ASMInstructionType::MOV,asm_mov);
+		this->inst->push_back(asm_inst);
+	
+	}
+
+
+
+
+
+
+
+
+	void convert_store_inst(TACStoreInst *inst)
+	{
+		ASMOperand *asm_dst = convert_value(inst->dst);
+		ASMOperand *asm_src = convert_value(inst->src);
+
+
+		void *mem = alloc(sizeof(ASMRegister));
+		ASMRegister *asm_reg = new(mem) ASMRegister(ASMRegisterType::RAX,8);
+		
+
+		mem = alloc(sizeof(ASMOperand));
+		ASMOperand *asm_tmp = new(mem) ASMOperand(ASMOperandType::REGISTER,asm_reg);
+		asm_tmp->add_type(ASMType::I64);
+
+
+
+		
+		mem = alloc(sizeof(ASMMovInst));
+		ASMMovInst *asm_mov = new(mem) ASMMovInst(asm_tmp,asm_dst);
+		asm_mov->add_type(ASMType::I64);
+
+
+		mem = alloc(sizeof(ASMInstruction));
+		ASMInstruction *asm_inst = new(mem) ASMInstruction(ASMInstructionType::MOV,asm_mov);
+		this->inst->push_back(asm_inst);
+
+
+
+
+
+
+		mem = alloc(sizeof(ASMStack));
+		ASMStack *stack = new(mem)ASMStack(8,"rax",0);
+
+
+		mem = alloc(sizeof(ASMOperand));
+		ASMOperand *asm_tmp2 = new(mem) ASMOperand(ASMOperandType::STACK,stack);
+		asm_tmp->add_type(ASMType::I64);
+
+
+		mem = alloc(sizeof(ASMMovInst));
+		asm_mov = new(mem) ASMMovInst(asm_tmp2,asm_src);
+		asm_mov->add_type(asm_dst->data_type);
+
+		std::cout << "store dst type : " << (int)asm_dst->type << std::endl;
+
+		
+		mem = alloc(sizeof(ASMInstruction));
+		asm_inst = new(mem) ASMInstruction(ASMInstructionType::MOV,asm_mov);
+		this->inst->push_back(asm_inst);
+	
+	}
+
+
+
+	void convert_get_address_inst(TACGetAddressInst *inst)
+	{
+		ASMOperand *asm_dst = convert_value(inst->dst);
+		ASMOperand *asm_src = convert_value(inst->src);
+		
+		void *mem = alloc(sizeof(ASMLeaInst));
+		ASMLeaInst *asm_lea = new(mem) ASMLeaInst(asm_dst,asm_src);
+		asm_lea->add_type(asm_dst->data_type);
+		
+		mem = alloc(sizeof(ASMInstruction));
+		ASMInstruction *asm_inst = new(mem) ASMInstruction(ASMInstructionType::LEA,asm_lea);
+		this->inst->push_back(asm_inst);
+	}
+
+
 
 	void convert_sign_extend_inst(TACSignExtendInst *inst)
 	{
@@ -1138,7 +1286,6 @@ public:
 				asm_operand->add_type(data_type);
 				break;
 			}
-
 			default:
 			{
 				DEBUG_PANIC("should not happen");

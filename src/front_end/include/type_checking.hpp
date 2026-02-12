@@ -38,6 +38,7 @@ public:
     std::string name;
     DataType type;
     TypeFunction val;
+    PointerType ptr_type;
     bool local = false;
     bool global = false;
     bool is_public = false;
@@ -54,6 +55,13 @@ public:
         this->name = name;
         this->type = type;
         this->local = local;
+    }
+
+    void add_pointer_type(bool is_ptr,DataType base_type,int ptr_no)
+    {
+        this->ptr_type.is_ptr = is_ptr;
+        this->ptr_type.base_type = base_type;
+        this->ptr_type.ptr_no = ptr_no;
     }
 
     void add_return_type(DataType return_type)
@@ -137,6 +145,14 @@ public:
     DataType get_type(std::string name)
     {
         return this->table.at(name).type;
+        //return this->map[name].name;
+    }
+
+
+
+    PointerType get_pointer_type(std::string name)
+    {
+        return this->table.at(name).ptr_type;
         //return this->map[name].name;
     }
 
@@ -496,25 +512,34 @@ public:
 
     void check_vardecl_stmt(ASTVarDecl *decl,SymbolTable *symbol_table)
     {
+        bool is_ptr = false;
+        DataType base_type;
+        int ptr_no = 0;
+        DataType type;
+
         switch(decl->type->type)
         {
             case ASTDataType::I32:
             {
+                base_type = DataType::I32;
                 DEBUG_PRINT(" vardecl =>  "," i32 ");
                 break;
             }
             case ASTDataType::I64:
             {
+                base_type = DataType::I64;
                 DEBUG_PRINT(" vardecl =>  "," i64 ");
                 break;
             }
             case ASTDataType::U32:
             {
+                base_type = DataType::U32;
                 DEBUG_PRINT(" vardecl =>  "," u32 ");
                 break;
             }
             case ASTDataType::U64:
             {
+                base_type = DataType::U64;
                 DEBUG_PRINT(" vardecl =>  "," u64 ");
                 break;
             }
@@ -523,6 +548,19 @@ public:
                 DEBUG_PANIC(" the gods have spoken!!");
                 break;
             }
+        }
+
+
+
+        if(decl->type->ptr > 0)
+        {
+            type = DataType::PTR;
+            ptr_no = decl->type->ptr;
+            printf(" ptr_no  =>   %d\n",ptr_no);
+        }
+        else
+        {
+            type = base_type;
         }
 
         switch (decl->type->type)
@@ -536,26 +574,30 @@ public:
                         fatal(" local extern variable declared with an initializer is illegal");
                     }
 
+
+
                     if(symbol_table->lookup(decl->ident))
                     {
-                        if(symbol_table->get_type(decl->ident) != DataType::I32)
+                        if(symbol_table->get_type(decl->ident) != type)
                         {
                             fatal("function redeclared as a variable");
                         }
                     }
                     else
                     {
-                        Symbol symbol(decl->ident,DataType::I32);
+                        Symbol symbol(decl->ident,type);
                         symbol.add_global(true);
                         symbol.add_init(false);
+                        symbol.add_pointer_type(is_ptr,base_type,ptr_no);
                         symbol_table->add(decl->ident,symbol);
                     }
                 }
                 else if(decl->is_static)
                 {
-                    Symbol symbol(decl->ident,DataType::I32);
+                    Symbol symbol(decl->ident,type);
                     symbol.add_global(false);
                     symbol.add_init(false);
+                    symbol.add_pointer_type(is_ptr,base_type,ptr_no);
 
                     if (decl->expr == nullptr)
                     {
@@ -574,10 +616,11 @@ public:
 
                     symbol_table->add(decl->ident,symbol);
                 }
-
                 else
                 {
-                    symbol_table->add(decl->ident,Symbol(decl->ident,DataType::I32,true));
+                    Symbol symbol(decl->ident,type,true);
+                    symbol.add_pointer_type(is_ptr,base_type,ptr_no);
+                    symbol_table->add(decl->ident,symbol);
 
                     if (decl->expr != nullptr)
                     {
@@ -1063,7 +1106,7 @@ public:
                     }
                     default:
                     {
-                        fatal("unsupported datatype encountered");
+                        fatal("unsupported datatype encountered : assign");
                         break;
                     }
                 }
@@ -1085,7 +1128,117 @@ public:
                 
 
                 var_expr->add_data_type(symbol_table->get_type(name));
+                var_expr->add_pointer_type(symbol_table->get_pointer_type(name).is_ptr,symbol_table->get_pointer_type(name).base_type,symbol_table->get_pointer_type(name).ptr_no);
+
+                printf("var expr ptr_no  : %d\n",symbol_table->get_pointer_type(name).ptr_no);
+
                 expr->add_data_type(var_expr->data_type);
+                expr->add_pointer_type(symbol_table->get_pointer_type(name).is_ptr,symbol_table->get_pointer_type(name).base_type,symbol_table->get_pointer_type(name).ptr_no);
+                break;
+            }
+            case ASTExpressionType::ADDRESS_OF:
+            {
+                ASTAddressOfExpr *addr = (ASTAddressOfExpr *)expr->expr;
+                if(is_lvalue(addr->expr))
+                {
+                    check_expr(addr->expr,symbol_table);
+                    addr->add_data_type(DataType::PTR);
+
+
+                    if(addr->expr->ptr_type.is_ptr)
+                    {
+                        addr->add_pointer_type(true,addr->expr->ptr_type.base_type,addr->expr->ptr_type.ptr_no + 1);
+                    }
+                    else
+                    {
+                        addr->add_pointer_type(true,addr->expr->data_type,1);
+                    }
+
+
+                    expr->add_data_type(addr->data_type);
+                    expr->add_pointer_type(addr->ptr_type.is_ptr,addr->ptr_type.base_type,addr->ptr_type.ptr_no);
+                }
+                else
+                {
+                    fatal("taking an address of a non lvalue is an invalid operation");
+                }
+                break;
+            }
+            case ASTExpressionType::PTR_READ:
+            {
+                ASTPtrReadExpr *read = (ASTPtrReadExpr *)expr->expr;
+                check_expr(read->expr,symbol_table);
+
+                switch (read->expr->data_type)
+                {
+                    case DataType::PTR:
+                    {
+                        DEBUG_PRINT("pointer read","--------------------");
+                        if(read->expr->ptr_type.ptr_no > 1)
+                        {
+                            //fatal("double pointer");
+                            read->add_data_type(DataType::PTR);
+                            read->add_pointer_type(read->expr->ptr_type.is_ptr,read->expr->ptr_type.base_type,read->expr->ptr_type.ptr_no);
+                        }
+                        else
+                        {
+                            read->add_data_type(read->expr->ptr_type.base_type);
+                            read->add_pointer_type(false,read->expr->ptr_type.base_type,0);
+                        }
+                        break;
+                    }
+                    default:
+                    {
+                        fatal("trying to read from a non-pointer type is invalid");
+                        break;
+                    }
+                }
+
+                expr->add_data_type(read->data_type);
+                expr->add_pointer_type(read->ptr_type.is_ptr,read->ptr_type.base_type,read->ptr_type.ptr_no);
+
+                std::cout << " read ptr : " << (int)expr->data_type << std::endl;
+
+
+
+                break;
+            }
+            case ASTExpressionType::PTR_WRITE:
+            {
+                ASTPtrWriteExpr *write = (ASTPtrWriteExpr *)expr->expr;
+                check_expr(write->expr,symbol_table);
+
+                switch (write->expr->data_type)
+                {
+                    case DataType::PTR:
+                    {
+                        DEBUG_PRINT("pointer read","--------------------");
+                        if(write->expr->ptr_type.ptr_no > 1)
+                        {
+                            //fatal("double pointer 66");
+                            write->add_data_type(DataType::PTR);
+                            write->add_pointer_type(write->expr->ptr_type.is_ptr,write->expr->ptr_type.base_type,write->expr->ptr_type.ptr_no -1);
+                        }
+                        else
+                        {
+                            write->add_data_type(write->expr->ptr_type.base_type);
+                            write->add_pointer_type(false,write->expr->ptr_type.base_type,0);
+                        }
+                        break;
+                    }
+                    default:
+                    {
+                        fatal("trying to read from a non-pointer type is invalid");
+                        break;
+                    }
+                }
+
+                expr->add_data_type(write->data_type);
+                expr->add_pointer_type(write->ptr_type.is_ptr,write->ptr_type.base_type,write->ptr_type.ptr_no);
+
+                std::cout << " write ptr : " << (int)expr->data_type << std::endl;
+
+
                 break;
             }
             case ASTExpressionType::FUNCTION_CALL:
@@ -1305,6 +1458,14 @@ public:
                             }
                             default:
                             {
+                                switch(binary_expr->op)
+                                {
+                                    case ASTBinaryOperator::EQUAL:
+                                    {
+                                        check_pointer_type_match(binary_expr->lhs,binary_expr->rhs);
+                                        break;
+                                    }
+                                }
                                 binary_expr->add_data_type(DataType::I32);
                             }
                         }
@@ -1318,6 +1479,38 @@ public:
         }
     }
 
+    void check_pointer_type_match(ASTExpression *lhs,ASTExpression *rhs)
+    {
+        if(lhs->data_type == DataType::PTR)
+        {
+            if(rhs->data_type != DataType::PTR)
+            {
+                fatal("comparing a pointer witho a non pointer is invalid");
+            }
+            else
+            {
+                if((lhs->ptr_type.base_type != rhs->ptr_type.base_type) or (lhs->ptr_type.ptr_no != rhs->ptr_type.ptr_no))
+                {
+                    fatal("pointer comparisons between conflicting types is invalid");
+                }
+            }
+        }
+        else if(rhs->data_type == DataType::PTR)
+        {
+            if(lhs->data_type != DataType::PTR)
+            {
+                fatal("comparing a pointer witho a non pointer is invalid");
+            }
+            else
+            {
+                if((lhs->ptr_type.base_type != rhs->ptr_type.base_type) or (lhs->ptr_type.ptr_no != rhs->ptr_type.ptr_no))
+                {
+                    fatal("pointer comparisons between conflicting types is invalid");
+                }
+            }
+        }
+    }
+
     bool is_data_type(DataType type)
     {
         switch(type)
@@ -1326,6 +1519,7 @@ public:
             case DataType::U32:
             case DataType::I64:
             case DataType::U64:
+            case DataType::PTR:
             {
                 return true;
             }
@@ -1333,6 +1527,22 @@ public:
             {
                 return false;
                 break;
+            }
+        }
+    }
+
+
+    bool is_lvalue(ASTExpression *expr)
+    {
+        switch(expr->type)
+        {
+            case ASTExpressionType::VARIABLE:
+            {
+                return true;
+            }
+            default:
+            {
+                return false;
             }
         }
     }

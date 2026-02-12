@@ -19,6 +19,7 @@ enum class TACType
 	I64,
 	U32,
 	U64,
+	PTR,
 };
 
 
@@ -133,6 +134,9 @@ enum class TACInstructionType
 	SIGN_EXTEND,
 	TRUNCATE,
 	ZERO_EXTEND,
+	GET_ADDRESS,
+	LOAD,
+	STORE,
 };
 
 
@@ -313,6 +317,7 @@ enum class TACBinaryOperator
 	GREATER_EQUAL,
 	AND,
 	OR,
+	EQUAL,
 	None,
 };
 
@@ -361,6 +366,72 @@ public:
 		this->src = src;
 	}
 };
+
+
+
+class TACLoadInst
+{
+public:
+	TACValue *dst;
+	TACValue *src;
+	TACType data_type;
+
+	void add_type(TACType data_type)
+	{
+		this->data_type = data_type;
+	}
+
+	TACLoadInst(TACValue *dst,TACValue *src)
+	{
+		this->dst = dst;
+		this->src = src;
+	}
+};
+
+
+
+
+class TACStoreInst
+{
+public:
+	TACValue *dst;
+	TACValue *src;
+	TACType data_type;
+
+	void add_type(TACType data_type)
+	{
+		this->data_type = data_type;
+	}
+
+	TACStoreInst(TACValue *dst,TACValue *src)
+	{
+		this->dst = dst;
+		this->src = src;
+	}
+};
+
+
+
+
+class TACGetAddressInst
+{
+public:
+	TACValue *dst;
+	TACValue *src;
+	TACType data_type;
+
+	void add_type(TACType data_type)
+	{
+		this->data_type = data_type;
+	}
+
+	TACGetAddressInst(TACValue *dst,TACValue *src)
+	{
+		this->dst = dst;
+		this->src = src;
+	}
+};
+
 
 
 class TACJmpInst

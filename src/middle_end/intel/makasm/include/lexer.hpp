@@ -21,7 +21,7 @@
 #ifndef C4C_LEXER_H
 #define C4C_LEXER_H
 
-#include "tokens.hpp"
+#include "token.hpp"
 
 class Lexer
 {
@@ -215,19 +215,8 @@ private:
 			}
 
 			/* To check for cases such as 12.2.2 */
-			if( match_token('.') and is_digit(1) )
-			{
-				if(!this->has_errors)
-				{
-					this->has_errors = true;
-				}
-				
-				add_token(TokenType::TOKEN_ERROR_MALFORMED_NUMBER);
-			}
-			else
-			{
-				add_token(TokenType::TOKEN_LITERAL_FLOAT,buf);
-			}
+			
+			add_token(TokenType::TOKEN_LITERAL_FLOAT,buf);
 		}
 		else
 		{
@@ -307,7 +296,7 @@ private:
 
 		if (error == true)
 		{
-			add_token(TokenType::TOKEN_ERROR_UNTERMINATED_STRING,buf);
+			//add_token(TokenType::TOKEN_ERROR_UNTERMINATED_STRING,buf);
 			this->has_errors = true;
 		}
 		else
@@ -370,119 +359,50 @@ private:
 
 	inline void add_keywords(std::string buf)
 	{
-		if (match_keyword(buf,"break"))
+		if (match_keyword(buf,"mov"))
 		{
-			add_token(TokenType::TOKEN_KEYWORD_BREAK,buf);
+			add_token(TokenType::TOKEN_MOV,buf);
 		}
-		else if (match_keyword(buf,"cast"))
+		else if (match_keyword(buf,"add"))
 		{
-			add_token(TokenType::TOKEN_KEYWORD_CAST,buf);
+			add_token(TokenType::TOKEN_ADD,buf);
 		}
-		else if (match_keyword(buf,"char"))
+		else if (match_keyword(buf,"sub"))
 		{
-			add_token(TokenType::TOKEN_KEYWORD_CHAR,buf);
+			add_token(TokenType::TOKEN_SUB,buf);
 		}
-		else if (match_keyword(buf,"const"))
+		else if (match_keyword(buf,"mul"))
 		{
-			add_token(TokenType::TOKEN_KEYWORD_CONST,buf);
+			add_token(TokenType::TOKEN_MUL,buf);
 		}
-		else if (match_keyword(buf,"continue"))
+		else if (match_keyword(buf,"div"))
 		{
-			add_token(TokenType::TOKEN_KEYWORD_CONTINUE,buf);
+			add_token(TokenType::TOKEN_DIV,buf);
 		}
-		else if (match_keyword(buf,"else"))
+		else if (match_keyword(buf,"mod"))
 		{
-			add_token(TokenType::TOKEN_KEYWORD_ELSE,buf);
+			add_token(TokenType::TOKEN_MOD,buf);
 		}
-		else if (match_keyword(buf,"elif"))
+		else if (match_keyword(buf,"push"))
 		{
-			add_token(TokenType::TOKEN_KEYWORD_ELIF,buf);
+			add_token(TokenType::TOKEN_PUSH,buf);
 		}
-
-		else if (match_keyword(buf,"enum"))
+		else if (match_keyword(buf,"pop"))
 		{
-			add_token(TokenType::TOKEN_KEYWORD_ENUM,buf);
+			add_token(TokenType::TOKEN_POP,buf);
 		}
-		else if (match_keyword(buf,"extern"))
+		else if (match_keyword(buf,"jmp"))
 		{
-			add_token(TokenType::TOKEN_KEYWORD_EXTERN,buf);
+			add_token(TokenType::TOKEN_JMP,buf);
 		}
-		else if (match_keyword(buf,"fn"))
+		
+		else if (match_keyword(buf,"print"))
 		{
-			//DEBUG_PRINT("fn " ," found");
-			add_token(TokenType::TOKEN_KEYWORD_FN,buf);
-		}
-		else if (match_keyword(buf,"f32"))
-		{
-			add_token(TokenType::TOKEN_KEYWORD_F32,buf);
-		}
-		else if (match_keyword(buf,"f64"))
-		{
-			add_token(TokenType::TOKEN_KEYWORD_F64,buf);
-		}
-		else if (match_keyword(buf,"i8"))
-		{
-			add_token(TokenType::TOKEN_KEYWORD_I8,buf);
-		}
-		else if (match_keyword(buf,"i16"))
-		{
-			add_token(TokenType::TOKEN_KEYWORD_I16,buf);
-		}
-		else if (match_keyword(buf,"i32"))
-		{
-			add_token(TokenType::TOKEN_KEYWORD_I32,buf);
-		}
-		else if (match_keyword(buf,"i64"))
-		{
-			add_token(TokenType::TOKEN_KEYWORD_I64,buf);
-		}
-		else if (match_keyword(buf,"if"))
-		{
-			add_token(TokenType::TOKEN_KEYWORD_IF,buf);
-		}
-		else if (match_keyword(buf,"loop"))
-		{
-			add_token(TokenType::TOKEN_KEYWORD_LOOP,buf);
-		}
-		else if (match_keyword(buf,"native"))
-		{
-			add_token(TokenType::TOKEN_KEYWORD_NATIVE,buf);
-		}
-		else if (match_keyword(buf,"pub"))
-		{
-			add_token(TokenType::TOKEN_KEYWORD_PUB,buf);
-		}
-		else if (match_keyword(buf,"return"))
-		{
-			add_token(TokenType::TOKEN_KEYWORD_RETURN,buf);
-		}
-		else if (match_keyword(buf,"struct"))
-		{
-			add_token(TokenType::TOKEN_KEYWORD_STRUCT,buf);
-		}
-		else if (match_keyword(buf,"while"))
-		{
-			add_token(TokenType::TOKEN_KEYWORD_WHILE,buf);
-		}
-		else if (match_keyword(buf,"u8"))
-		{
-			add_token(TokenType::TOKEN_KEYWORD_U8,buf);
-		}
-		else if (match_keyword(buf,"u16"))
-		{
-			add_token(TokenType::TOKEN_KEYWORD_U16,buf);
-		}
-		else if (match_keyword(buf,"u32"))
-		{
-			add_token(TokenType::TOKEN_KEYWORD_U32,buf);
-		}
-		else if (match_keyword(buf,"u64"))
-		{
-			add_token(TokenType::TOKEN_KEYWORD_U64,buf);
+			add_token(TokenType::TOKEN_PRINT,buf);
 		}
 		else
 		{
-			add_token(TokenType::TOKEN_IDENT,buf);
+			//add_token(TokenType::TOKEN_IDENT,buf);
 		}
 	}
 
@@ -658,38 +578,8 @@ private:
 			 case '\"':
 				 make_string();
 				 break;
-			 case ':':
-			 	if ( match_token(':',1))
-				    add_token_double(TokenType::TOKEN_RESOLUTION,"::");
-				else
-					add_token_single(TokenType::TOKEN_COLON);
-				break;
-			 case '~':
-				add_token_single(TokenType::TOKEN_TILDE);
-				break;
-			 case '@':
-				add_token_single(TokenType::TOKEN_AT);
-				break;
-			 case ';':
-				add_token_single(TokenType::TOKEN_SEMI_COLON);
-				break;
-			 case '(':
-				add_token_single(TokenType::TOKEN_LBRACE);
-				break;
-			 case ')':
-				add_token_single(TokenType::TOKEN_RBRACE);
-				break;
-			 case '[':
-				add_token_single(TokenType::TOKEN_LBRACKET);
-				break;
-			 case ']':
-				add_token_single(TokenType::TOKEN_RBRACKET);
-				break;
 			 case ',':
 				add_token_single(TokenType::TOKEN_COMMA);
-				break;
-			 case '.':
-				add_token_single(TokenType::TOKEN_DOT);
 				break;
 			 case '\t':
 				update_col(4);
@@ -707,60 +597,6 @@ private:
 				update_row(1);
 				update_col(1);
 				consume();
-				break;
-			 case '*':
-				add_token_single(TokenType::TOKEN_MUL,"*");
-				break;
-			 case '/':
-				add_token_single(TokenType::TOKEN_DIV,"/");
-				break;
-			 case '%':
-				add_token_single(TokenType::TOKEN_MOD,"%");
-				break;
-			 case '+':
-				add_token_single(TokenType::TOKEN_ADD,"+");
-				break;
-			 case '-':
-				if ( match_token('>',1))
-				    add_token_double(TokenType::TOKEN_RETPARAM,"->");
-				else
-				    add_token_single(TokenType::TOKEN_SUB,"-");
-				break;
-			 case '>':
-				if ( match_token('=',1))
-				    add_token_double(TokenType::TOKEN_GREATER_EQUAL,">=");
-				else
-				    add_token_single(TokenType::TOKEN_GREATER,">");
-				break;
-			 case '<':
-				if ( match_token('=',1))
-				    add_token_double(TokenType::TOKEN_LESS_EQUAL,">=");
-				else
-				    add_token_single(TokenType::TOKEN_LESS,">");
-				break;
-			 case '=':
-				if ( match_token('=',1))
-				    add_token_double(TokenType::TOKEN_EQUAL,"==");
-				else
-				    add_token_single(TokenType::TOKEN_ASSIGN,"=");
-				break;
-			 case '!':
-				if ( match_token('=',1))
-				    add_token_double(TokenType::TOKEN_NOT_EQUAL,"!=");
-				else
-				    add_token_single(TokenType::TOKEN_NOT,"!");
-				break;
-			 case '&':
-				if ( match_token('&',1))
-				    add_token_double(TokenType::TOKEN_AND,"&&");
-				else
-				    add_token_single(TokenType::TOKEN_BITWISE_AND,"&");
-				break;
-			 case '|':
-				if ( match_token('|',1))
-				    add_token_double(TokenType::TOKEN_OR,"||");
-				else
-				    add_token_single(TokenType::TOKEN_BITWISE_OR,"|");
 				break;
 			 default:
 				consume(); 
@@ -792,82 +628,10 @@ public:
 		return this->tokens;
 	}
 
-	/**
-	 * Used together with `print_errors()`, this function prints out the error found,
-	 * the line at which its found, the part of the code with the error, and the associated message.
-	 */
-
-	/******************************************************************************\
-	 * 																			  *
-	 * NOTE: The line variable that gets printed corresponds to where the index	  *
-	 *       points, which is at the end of the extracted code (the source_part), *
-	 * 		 and not the begining, should be improved later.					  *
-	 \*****************************************************************************/
-
-	void print_error(Tokens token, std::string msg)
-	{
-		int start = token.start;
-		int end = token.end;
-		int line = this->row;
-		int col = this->col;
-		std::string source_part = this->file_source.substr(start,end);
-
-		DEBUG_PRINT("An error in the lexer at line ", line);
-		DEBUG_PRINT("Here :", source_part);
-		DEBUG_PRINT("message: ", msg);
-	}
-
-
-	/**
-	 * This function first checks if the scanned source has any errors,
-	 * if found, it loops through all the available tokens and looks for 
-	 * lexical errors ones.
-	 * It then prints out the errors with relevant messages.
-	 */
-	void print_errors()
-	{
-		if (this->has_errors)
-		{
-			for (Tokens token : this->tokens)
-			{
-				TokenType this_token_type = token.type;
-
-				switch (this_token_type)
-				{
-				case TokenType::TOKEN_ERROR_INVALID_CHARACTER:
-					print_error(token, "invalid character in input");
-					break;
-
-				case TokenType::TOKEN_ERROR_MALFORMED_NUMBER:
-					print_error(token, "malformed numeric literal");
-					break;
-
-				case TokenType::TOKEN_ERROR_UNTERMINATED_STRING:
-					print_error(token, "unterminated string literal (missing closing \")");
-					break;
-
-				case TokenType::TOKEN_ERROR_UNTERMINATED_CHARACTER:
-					print_error(token, "unterminated character literal (missing closing ')");
-					break;
-
-				case TokenType::TOKEN_ERROR_INVALID_ESCAPE_CHARACTER:
-					print_error(token, "invalid escape sequence");
-					break;
-
-				default:
-					break;
-				}
-			}
-		}
-	}
-
-	inline void print()
-	{
-		for (Tokens token : this->tokens)
-		{
-			token.print();
-		}
-	}
 };
 
 #endif
+
+
+
+

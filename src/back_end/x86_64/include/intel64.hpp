@@ -21,7 +21,8 @@ enum class ASMInstructionType
 	CALL,
 	MOVSX,
 	MOVZX,
-	MOVZEROEXTEND
+	MOVZEROEXTEND,
+	LEA,
 };
 
 #include "../../include/asm_ast.hpp"
@@ -162,6 +163,31 @@ public:
 		this->operand = operand;
 	}
 };
+
+
+
+
+class ASMLeaInst
+{
+public:
+	ASMOperand *dst;
+	ASMOperand *src;
+	ASMType data_type;
+
+	void add_type(ASMType data_type)
+	{
+		this->data_type = data_type;
+	}
+
+	ASMLeaInst(ASMOperand *dst,ASMOperand *src)
+	{
+		this->dst = dst;
+		this->src = src;
+	}
+
+};
+
+
 
 
 class ASMMovInst

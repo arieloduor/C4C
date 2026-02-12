@@ -1,0 +1,19 @@
+push 90
+push 60
+print
+add
+print
+push 15
+print
+eq
+print
+jt 14
+push 78
+print
+add
+print
+push 100
+print
+mul
+print
+

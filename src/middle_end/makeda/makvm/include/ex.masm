@@ -1,0 +1,9 @@
+push 40
+push 70
+print
+add
+print
+push 90
+print
+sub
+print

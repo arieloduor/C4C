@@ -70,10 +70,11 @@ public:
 
 enum class ASMType
 {
-	I32,
+	I32 = 1,
 	I64,
 	U32,
 	U64,
+	PTR,
 };
 
 class ASMGlobalVariable

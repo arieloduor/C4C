@@ -30,29 +30,78 @@ pub fn main()->i32:
     return cast<i32>(val64) - (cast<i32>(tmp) - ret)
 :*/
 
+/*
+pub fn main()->i32:
+    i32 age = 90
+    i32 num = 89
+    i32 *ptr = &age
+    i32 *ptr0 = &age 
+    i32 **ptr1 = &ptr
+    i32 **ptr2 = &ptr0
+
+    if ptr == ptr0:
+        return 89
+    :
 
 
+    ptr1@write(ptr0)
+
+    return age
+:
+*/
+
+enum Color:
+    RED = 7
+    GREEN
+    BLUE
+:
+
+native "C":
+    fn puts(char *str)->i32
+:
+
+fn main()->i32:
+    char ch = 65
+    char *ptr = "hello world"
+    puts(ptr)
+    return Color.BLUE
+:
+
+/*
+
+fn swap(i32 *a,i32 *b)->i32:
+    i32 tmp = a@read()
+    a@write(b@read())
+    b@write(tmp)
+
+    return 0
+:
+
+pub fn main()->i32:
+    i32 age = 90
+    i32 age1 = 78
+
+    swap(&age,&age1)
+
+    i32 *ptr = &age
+    i32 **ptr2 = &ptr
+
+    return ptr2@read()@read()
+:
+*/
+/*
 
 
 pub fn main()->i32:
-    u64 i = 0
+    i32 age = 90
+    i32 *ptr = &age
 
-    if i >= 0:
-        i = 85
-    :
-    else:
-        i = 90
-    :
+    ptr@write(210)
 
-    i = i + 10
-
-    return cast<i32>(i)
+    return ptr@read()
 :
 
-
-
-
-
+*/
 
 
 

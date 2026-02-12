@@ -45,11 +45,12 @@ int main(int argc,char *argv[])
 		DEBUG_PRINT("sanity check : ", " after parser ");
 		//arena.reset();
 
+		AstToC C(file_name,parser.program);
+		StringToFile(file_name.substr(0, file_name.length() - 3) + ".c",C.string);
+
+		return 0;
 		IdentifierResolution resolve(file_name,parser.program);
 
-
-		AstToC C(file_name,resolve.program);
-		StringToFile(file_name.substr(0, file_name.length() - 3) + ".c",C.string);
 
 		AstToJS JS(file_name,resolve.program);
 		StringToFile(file_name.substr(0, file_name.length() - 3) + ".js",JS.string);
@@ -61,6 +62,8 @@ int main(int argc,char *argv[])
 		DEBUG_PRINT("sanity check : ", " after resolve ");
 		
 		LoopLabelling loop_label(file_name,type_check.program,resolve.global_counter);
+
+		
 
 		AstToTac tac(file_name,loop_label.program,&arena,loop_label.global_counter,type_check.table);
 

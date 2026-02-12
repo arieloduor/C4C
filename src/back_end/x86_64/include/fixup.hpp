@@ -103,6 +103,11 @@ public:
 				fix_return_inst((ASMRetInst *)inst->instruction);
 				break;
 			}
+			case ASMInstructionType::LEA:
+			{
+				fix_lea_inst((ASMLeaInst *)inst->instruction);
+				break;
+			}
 			case ASMInstructionType::MOV:
 			{
 				fix_mov_inst((ASMMovInst *)inst->instruction);
@@ -178,7 +183,57 @@ public:
 		}
 	}
 
-	
+
+
+
+	void fix_lea_inst(ASMLeaInst *inst)
+	{
+		ASMOperand *dst = inst->dst;
+		ASMOperand *src = inst->src;
+
+		if (dst->type == ASMOperandType::STACK)
+		{
+			// Create scratch register (r12)
+			void *mem = alloc(sizeof(ASMRegister));
+			ASMRegister *asm_reg = new(mem) ASMRegister(ASMRegisterType::R11, 8);
+
+			mem = alloc(sizeof(ASMOperand));
+			ASMOperand *asm_scratch_reg =
+				new(mem) ASMOperand(ASMOperandType::REGISTER, asm_reg);
+
+			// 1️⃣ Create new LEA: lea scratch, src
+			mem = alloc(sizeof(ASMLeaInst));
+			ASMLeaInst *new_lea =
+				new(mem) ASMLeaInst(asm_scratch_reg, src);
+
+			mem = alloc(sizeof(ASMInstruction));
+			ASMInstruction *lea_inst =
+				new(mem) ASMInstruction(ASMInstructionType::LEA, new_lea);
+
+			// Replace original instruction
+			this->inst->at(this->index) = lea_inst;
+
+			// 2️⃣ Create MOV: mov dst, scratch
+			mem = alloc(sizeof(ASMMovInst));
+			ASMMovInst *mov =
+				new(mem) ASMMovInst(dst, asm_scratch_reg);
+
+			mem = alloc(sizeof(ASMInstruction));
+			ASMInstruction *mov_inst =
+				new(mem) ASMInstruction(ASMInstructionType::MOV, mov);
+
+			// Insert mov after lea
+			this->inst->insert(
+				this->inst->begin() + this->index + 1,
+				mov_inst
+			);
+
+			// Skip past inserted instruction
+			this->index++;
+		}
+	}
+
+
 	void fix_mov_inst(ASMMovInst *inst)
 	{
 		fix_general(inst->dst,inst->src);

@@ -52,6 +52,11 @@ public:
 				convert_enum_decl((ASTEnumDecl *)decl->decl);
 				break;
 			}
+			case ASTDeclarationType::NATIVE:
+			{
+				convert_native_decl((ASTNativeDecl *)decl->decl);
+				break;
+			}
 			default:
 			{
 				DEBUG_PRINT("here "," null tac_decl");
@@ -77,7 +82,7 @@ public:
 				continue;
 			}
 
-			write_body("\t" + enum_const->ident);
+			write_body("\t" + decl->ident + "_" + enum_const->ident);
 
 			if(enum_const->has_value)
 			{
@@ -88,6 +93,131 @@ public:
 		}
 
 		write_body("};\n\n");
+	}
+
+
+
+	void convert_function_native(ASTFunctionDeclNative *decl)
+	{
+		switch(decl->return_type->type)
+		{
+			case ASTDataType::I32:
+			{
+				write_body("int ");
+				break;
+			}
+			case ASTDataType::I64:
+			{
+				write_body("long int ");
+				break;
+			}
+			case ASTDataType::U32:
+			{
+				write_body("unsigned int ");
+				break;
+			}
+			case ASTDataType::U64:
+			{
+				write_body("unsigned long int ");
+				break;
+			}
+			case ASTDataType::F32:
+			{
+				write_body(" ");
+				break;
+			}
+			case ASTDataType::F64:
+			{
+				write_body("double ");
+				break;
+			}
+		}
+
+		write_body(decl->ident + "(");
+
+		int arg_length = decl->arguments.size();
+		int i = 0;
+
+		for (ASTFunctionArgument *arg : decl->arguments)
+		{
+			if (arg == nullptr)
+			{
+				continue;
+			}
+
+			std::string data_type;
+
+			switch(arg->type->type)
+			{
+				case ASTDataType::CHAR:
+				{
+					data_type = "char ";
+					break;
+				}
+				case ASTDataType::I32:
+				{
+					data_type = "int";
+					break;
+				}
+				case ASTDataType::I64:
+				{
+					data_type = "long int";
+					break;
+				}
+				case ASTDataType::U32:
+				{
+					data_type = "unsigned int";
+					break;
+				}
+				case ASTDataType::U64:
+				{
+					data_type = "unsigned long int";
+					break;
+				}
+				case ASTDataType::F32:
+				{
+					data_type = "float";
+					break;
+				}
+				case ASTDataType::F64:
+				{
+					data_type = "double";
+					break;
+				}
+				default:
+				{
+					break;
+				}
+			}
+
+			data_type += " ";
+			for (int i = 0; i < arg->type->ptr; i++)
+			{
+				data_type += "*";
+			}
+
+			write_body(data_type + arg->ident);
+
+			if(i++ + 1 >= arg_length)
+			{
+				break;
+			}
+
+			write_body(",");
+
+		}
+
+		write_body(");\n");
+
+	}
+
+
+	void convert_native_decl(ASTNativeDecl *decl)
+	{
+		for(ASTFunctionDeclNative *fn : decl->functions)
+		{
+			convert_function_native(fn);
+		}
 	}
 
 
@@ -143,6 +273,11 @@ public:
 
 			switch(arg->type->type)
 			{
+				case ASTDataType::CHAR:
+				{
+					data_type = "char ";
+					break;
+				}
 				case ASTDataType::I32:
 				{
 					data_type = "int";
@@ -179,7 +314,13 @@ public:
 				}
 			}
 
-			write_body(data_type + " " + arg->ident);
+			data_type += " ";
+			for (int i = 0; i < arg->type->ptr; i++)
+			{
+				data_type += "*";
+			}
+
+			write_body(data_type + arg->ident);
 
 			if(i++ + 1 >= arg_length)
 			{
@@ -312,6 +453,11 @@ public:
 
 		switch(stmt->type->type)
 		{
+			case ASTDataType::CHAR:
+			{
+				data_type = "char ";
+				break;
+			}
 			case ASTDataType::I32:
 			{
 				data_type = "int ";
@@ -349,6 +495,11 @@ public:
 			}
 		}
 
+		for(int i = 0; i < stmt->type->ptr; i++)
+		{
+			data_type += "*";
+		}
+
 		write_body(data_type + stmt->ident + " = ");
 		convert_expr(stmt->expr);
 		write_body(";\n");
@@ -367,12 +518,16 @@ public:
 
 	void convert_expr(ASTExpression *expr)
 	{
-		write_body("(");
 		switch (expr->type)
 		{
 			case ASTExpressionType::CAST:
 			{
 				convert_cast_expr(expr->expr,expr->data_type);
+				break;
+			}
+			case ASTExpressionType::STRING:
+			{
+				convert_string_expr(expr->expr,expr->data_type);
 				break;
 			}
 			case ASTExpressionType::I32:
@@ -415,9 +570,33 @@ public:
 				convert_variable_expr(expr->expr,expr->data_type);
 				break;
 			}
+			case ASTExpressionType::ADDRESS_OF:
+			{
+				convert_address_of_expr(expr->expr,expr->data_type);
+				break;
+			}
+			case ASTExpressionType::PTR_READ:
+			{
+				write_body("(");
+				convert_ptr_read_expr(expr->expr,expr->data_type);
+				write_body(")");
+				break;
+			}
+			case ASTExpressionType::PTR_WRITE:
+			{
+				write_body("(");
+				convert_ptr_write_expr(expr->expr,expr->data_type);
+				write_body(")");
+				break;
+			}
 			case ASTExpressionType::ASSIGN:
 			{
 				convert_assign_expr(expr->expr,expr->data_type);
+				break;
+			}
+			case ASTExpressionType::ENUM_ACCESS:
+			{
+				convert_enum_access_expr(expr->expr,expr->data_type);
 				break;
 			}
 			case ASTExpressionType::UNARY:
@@ -432,10 +611,21 @@ public:
 			}
 		}
 
-		write_body(")");
+		
 
 	}
 
+
+
+	void convert_enum_access_expr(void *expr,DataType expr_type)
+	{
+		write_body(((ASTEnumAccessExpr *)expr)->base + "_" + ((ASTEnumAccessExpr *)expr)->member);
+	}
+
+	void convert_string_expr(void *expr,DataType expr_type)
+	{
+		write_body("\"" + ((ASTStringExpr *)expr)->value +"\"");
+	}
 
 	void convert_i32_expr(void *expr,DataType expr_type)
 	{
@@ -506,6 +696,37 @@ public:
 		ASTVariableExpr *var_expr = (ASTVariableExpr *)expr;
 		write_body(var_expr->ident);
 	}
+
+
+
+	void convert_address_of_expr(void *expr,DataType expr_type)
+	{
+		ASTAddressOfExpr *address_of_expr = (ASTAddressOfExpr *)expr;
+		write_body("&");
+		convert_expr(address_of_expr->expr);
+	}
+
+
+
+	void convert_ptr_read_expr(void *expr,DataType expr_type)
+	{
+		ASTPtrReadExpr *ptr_read_expr = (ASTPtrReadExpr *)expr;
+		write_body("*");
+		convert_expr(ptr_read_expr->expr);
+	}
+
+
+
+	void convert_ptr_write_expr(void *expr,DataType expr_type)
+	{
+		ASTPtrWriteExpr *ptr_write = (ASTPtrWriteExpr *)expr;
+		write_body("*");
+		convert_expr(ptr_write->expr);
+		write_body(" = ");
+		convert_expr(ptr_write->data);
+
+	}
+
 
 
 	void convert_assign_expr(void *expr,DataType expr_type)
@@ -653,6 +874,12 @@ public:
 				write_body(" || ");
 				break;
 			}
+			case ASTBinaryOperator::EQUAL:
+			{
+				write_body(" == ");
+				break;
+			}
+
 		}
 	}
 
