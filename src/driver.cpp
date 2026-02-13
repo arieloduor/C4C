@@ -42,6 +42,8 @@ int main(int argc,char *argv[])
 	lexer.print_errors();
 	//lexer.print();
 
+	DEBUG_PRINT("sanity check : ", " after lexer ");
+
 	{
 		Arena arena(1000000);
 		

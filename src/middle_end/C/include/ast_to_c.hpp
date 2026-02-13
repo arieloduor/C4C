@@ -338,6 +338,16 @@ public:
 	{
 		switch(decl->return_type->type)
 		{
+			case ASTDataType::VOID:
+			{
+				write_body("void ");
+				break;
+			}
+			case ASTDataType::CHAR:
+			{
+				write_body("char ");
+				break;
+			}
 			case ASTDataType::I32:
 			{
 				write_body("int ");
@@ -370,6 +380,11 @@ public:
 			}
 		}
 
+		for(int i = 0; i < decl->return_type->ptr; i++)
+		{
+			write_body("*");
+		}
+
 		write_body(decl->ident + "(");
 
 		int arg_length = decl->arguments.size();
@@ -386,6 +401,11 @@ public:
 
 			switch(arg->type->type)
 			{
+				case ASTDataType::VOID:
+				{
+					data_type = "void ";
+					break;
+				}
 				case ASTDataType::CHAR:
 				{
 					data_type = "char ";

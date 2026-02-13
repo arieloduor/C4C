@@ -488,6 +488,10 @@ private:
 		{
 			add_token(TokenType::TOKEN_KEYWORD_U64,buf);
 		}
+		else if (match_keyword(buf,"void"))
+		{
+			add_token(TokenType::TOKEN_KEYWORD_VOID,buf);
+		}
 		else
 		{
 			add_token(TokenType::TOKEN_IDENT,buf);

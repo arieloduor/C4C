@@ -253,6 +253,10 @@ public:
 		{
 			return TokenType::TOKEN_KEYWORD_LOOP;
 		}
+		else if (keyword == "void")
+		{
+			return TokenType::TOKEN_KEYWORD_VOID;
+		}
 
 		return TokenType::TOKEN_EOF;
 	}
@@ -480,6 +484,10 @@ public:
 			return true;
 		}
 		else if (token.type == TokenType::TOKEN_KEYWORD_CHAR)
+		{
+			return true;
+		}
+		else if (token.type == TokenType::TOKEN_KEYWORD_VOID)
 		{
 			return true;
 		}
@@ -1146,7 +1154,12 @@ public:
 
 		if (match_type())
 		{
-			if (is_token_string("char"))
+			if (is_token_string("void"))
+			{
+				data_type = ASTDataType::VOID;
+				consume();
+			}
+			else if (is_token_string("char"))
 			{
 				data_type = ASTDataType::CHAR;
 				consume();
@@ -1196,7 +1209,7 @@ public:
 		}
 		else
 		{
-			fatal("unsupported types ");
+			fatal("unsupported types # " + std::to_string((int)peek()->type));
 		}
 
 		type->add_type(data_type);
@@ -2106,7 +2119,7 @@ public:
 			}
 			else
 			{
-				fatal("unsupported types ");
+				fatal("unsupported types $");
 			}
 
 			expect_symbol(">");

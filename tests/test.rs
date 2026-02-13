@@ -1,144 +1,43 @@
-//@include "include_test/test1.rs" /* The include_test folder was created to test for absolute path finding*/
-
-
-/*
-
-struct Task:
-    i32 pid
-    i32 uid
+enum OpenFlag:
+    O_RDONLY    = 0      // open for reading only
+    O_WRONLY    = 1      // open for writing only
+    O_RDWR      = 2      // open for reading and writing
+    O_CREAT     = 64     // create file if it does not exist
+    O_EXCL      = 128    // error if O_CREAT and the file exists
+    O_NOCTTY    = 256    // do not assign controlling terminal
+    O_TRUNC     = 512    // truncate file to zero length
+    O_APPEND    = 1024   // append on each write
+    O_NONBLOCK  = 2048   // non-blocking mode
+    O_DSYNC     = 4096   // synchronous I/O data integrity
+    O_SYNC      = 1052672 // synchronous I/O file integrity
+    O_RSYNC     = 1052672 // synchronous reads
+    O_DIRECTORY = 65536   // fail if not a directory
+    O_NOFOLLOW  = 131072  // do not follow symbolic links
+    O_CLOEXEC   = 524288  // set close-on-exec
 :
 
 
-fn add_i64(i64 x,i64 y)->i64:
-    return x + y
-:
-
-
-pub fn main()->i32:
-    i64 character = 65
-    while character <= 120:
-        character = character + 1
-    :
-
-    i64 tmp = character + 17
-    tmp = tmp + 89
-
-    i32 ret = cast<i32>(character)
-  
-    i64 val64 = add_i64(200,106)
-
-    return cast<i32>(val64) - (cast<i32>(tmp) - ret)
-:*/
-
-/*
-pub fn main()->i32:
-    i32 age = 90
-    i32 num = 89
-    i32 *ptr = &age
-    i32 *ptr0 = &age 
-    i32 **ptr1 = &ptr
-    i32 **ptr2 = &ptr0
-
-    if ptr == ptr0:
-        return 89
-    :
-
-
-    ptr1@write(ptr0)
-
-    return age
-:
-*/
-
-struct Vga:
-    i32 height
-    i32 width
-    i32 depth
-:
-
-impl Vga:
-    fn get_height()->i32:
-        return self->height
-    :
-:
-
-enum Color:
-    RED = 7
-    GREEN
-    BLUE
-:
 
 native "C":
+    fn open(char *name,i32 flags,i32 mode)->i32
+    fn creat(char *name,i32 mode)->i32
+    fn read(i32 fd,char *buf,u64 buflen)->i64
+    fn write(i32 fd,char *buf,u64 buflen)->i64
+    fn close(i32 fd)->i32
     fn puts(char *str)->i32
-    fn malloc(i32 size)->char *
-    fn free(char *ptr)->i32
+    fn malloc(u64 size)->void *
+    fn free(void *ptr)->void
 :
 
-@include "lib/linux/file/native.c4"
 
 fn main()->i32:
-    //char ch = 65
-    //char *ptr = "hello world"
-    //puts(ptr)
-    Color color = Color.BLUE
-    Vga vga = Vga:
-        .height = 25,
-        .width = 80,
-        .depth = 2,
-    :
-
-    Vga *vga_ptr = &vga  
-    puts("hi")
-
-    i32 fd = open("test.rs",OpenFlag.O_RDONLY)
+    i32 fd = open("test.rs",OpenFlag.O_RDONLY,0)
     char *buf = malloc(1000)
-    read(fd,buf,1000);
+    read(fd,buf,1000)
+    puts(buf)
     free(buf)
-    return vga.get_height()
-:
-
-/*
-
-fn swap(i32 *a,i32 *b)->i32:
-    i32 tmp = a@read()
-    a@write(b@read())
-    b@write(tmp)
-
     return 0
 :
-
-pub fn main()->i32:
-    i32 age = 90
-    i32 age1 = 78
-
-    swap(&age,&age1)
-
-    i32 *ptr = &age
-    i32 **ptr2 = &ptr
-
-    return ptr2@read()@read()
-:
-*/
-/*
-
-
-pub fn main()->i32:
-    i32 age = 90
-    i32 *ptr = &age
-
-    ptr@write(210)
-
-    return ptr@read()
-:
-
-*/
-
-
-
-
-
-
-
 
 
 

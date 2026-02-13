@@ -261,6 +261,7 @@ public:
 
 enum class ASTDataType
 {
+	VOID,
 	CHAR,
 	I32,
 	I64,
