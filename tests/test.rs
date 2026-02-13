@@ -70,9 +70,11 @@ enum Color:
 
 native "C":
     fn puts(char *str)->i32
+    fn malloc(i32 size)->char *
+    fn free(char *ptr)->i32
 :
 
-
+@include "lib/linux/file/native.c4"
 
 fn main()->i32:
     //char ch = 65
@@ -87,6 +89,11 @@ fn main()->i32:
 
     Vga *vga_ptr = &vga  
     puts("hi")
+
+    i32 fd = open("test.rs",OpenFlag.O_RDONLY)
+    char *buf = malloc(1000)
+    read(fd,buf,1000);
+    free(buf)
     return vga.get_height()
 :
 
