@@ -1167,6 +1167,104 @@ public:
 		return stmt;
 	}
 
+	ASTArrayInitializer *parse_array()
+	{
+		expect_symbol("["); 
+
+		std::vector<ASTInitializer *> elements;
+
+		while (!is_token_type(TokenType::TOKEN_RBRACKET))
+		{
+			ASTInitializer *elem = parse_initializer();
+			elements.push_back(elem);
+
+			if (!is_token_type(TokenType::TOKEN_RBRACKET))
+			{
+				expect_symbol(",");
+			}
+		}
+
+		expect_symbol("]");
+
+		void *mem = alloc(sizeof(ASTArrayInitializer));
+		return new (mem) ASTArrayInitializer(elements);
+	}
+
+	ASTStructInitializer *parse_struct_initializer()
+	{
+		std::string type_name = consume().string; // the struct name
+		expect_symbol("{");
+
+		std::vector<ASTStructFieldInitializer> fields;
+		bool is_named = false;
+
+		// Handle for empty struct: Vga{}
+		if (is_symbol("}"))
+		{
+			expect_symbol("}");
+			void *mem = alloc(sizeof(ASTStructInitializer));
+			return new (mem) ASTStructInitializer(type_name, fields, false);
+		}
+
+		// Detect if it is a nmaed inititializer
+		if (is_symbol("."))
+		{
+			is_named = true;
+		}
+
+		while (!is_symbol("}"))
+		{
+			if (is_named)
+			{
+				expect_symbol(".");
+				std::string field_name = consume().string;
+				expect_symbol("=");
+
+				ASTExpression *value = parse_expr(0);
+				fields.push_back(ASTStructFieldInitializer(field_name, value));
+			}
+			else
+			{
+				ASTExpression *value = parse_expr(0);
+				fields.push_back(ASTStructFieldInitializer("", value));
+			}
+
+			if (!is_symbol("}"))
+				expect_symbol(",");
+		}
+
+		expect_symbol("}");
+
+		void *mem = alloc(sizeof(ASTStructInitializer));
+		return new (mem) ASTStructInitializer(type_name, fields, is_named);
+	}
+
+
+
+	ASTInitializer *parse_initializer()
+	{
+		// Array initializer
+		if (is_token_type(TokenType::TOKEN_LBRACKET))
+		{
+			void *mem = alloc(sizeof(ASTInitializer));
+			return new (mem) ASTInitializer(parse_array());
+		}
+
+		// Struct initializer: Vga {
+		if (is_token_type(TokenType::TOKEN_IDENT) and
+			peek(1)->type == TokenType::TOKEN_LBRACE)
+		{
+			void *mem = alloc(sizeof(ASTInitializer));
+			return new (mem) ASTInitializer(parse_struct_initializer());
+		}
+
+		// Otherwise: expression
+		ASTExpression *expr = parse_expr(0);
+
+		void *mem = alloc(sizeof(ASTInitializer));
+		return new (mem) ASTInitializer(expr);
+	}
+
 	/**
 	 * Parses a variable declaration.
 	 */
@@ -1186,6 +1284,7 @@ public:
 			ident = consume().string;
 		}
 
+		/* Is like this */
 		ASTExpression *expr = nullptr;
 		if (is_extern == false)
 		{
@@ -1193,8 +1292,16 @@ public:
 			expr = parse_expr(0);
 		}
 
+		/* Will have to changed it to this and change the ASTVarDecl from taking expression to initializer*/
+		// ASTInitializer *init = nullptr;
+		// if (is_extern == false)
+		// {
+		// 	expect_symbol("=");
+		// 	init = parse_initializer();
+		// }
+
 		void *mem = alloc(sizeof(ASTVarDecl));
-		ASTVarDecl *decl = new(mem) ASTVarDecl(type,ident,expr,is_public,is_static,is_extern);
+		ASTVarDecl *decl = new (mem) ASTVarDecl(type, ident, expr, is_public, is_static, is_extern);
 
 		return decl;
 	}

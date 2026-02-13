@@ -704,6 +704,97 @@ enum class ASTAssignOperator
 	None,
 };
 
+enum class InitializerKind {
+    INIT_EXPR = 1,
+    INIT_ARRAY,
+    INIT_STRUCT
+};
+
+
+class ASTArrayInitializer
+{
+public:
+    std::vector<ASTInitializer*> elements;
+
+    ASTArrayInitializer(const std::vector<ASTInitializer*>& elements)
+    {
+        this->elements = elements;
+    }
+};
+
+
+
+class ASTStructFieldInitializer
+{
+public:
+    std::string field_name; // empty if positional
+    ASTExpression *value;
+
+    ASTStructFieldInitializer(const std::string& field_name,
+                              ASTExpression *value)
+    {
+        this->field_name = field_name;
+        this->value = value;
+    }
+};
+
+
+
+class ASTStructInitializer
+{
+public:
+    std::string type_name;
+    std::vector<ASTStructFieldInitializer> fields;
+    bool is_named;
+
+    ASTStructInitializer(const std::string& type_name,
+                         const std::vector<ASTStructFieldInitializer>& fields,
+                         bool is_named)
+    {
+        this->type_name = type_name;
+        this->fields = fields;
+        this->is_named = is_named;
+    }
+};
+
+
+class ASTInitializer
+{
+public:
+    InitializerKind kind;
+
+    ASTExpression *expr_init;
+    ASTArrayInitializer *array_init;
+    ASTStructInitializer *struct_init;
+
+    ASTInitializer(ASTExpression *expr)
+    {
+        kind = InitializerKind::INIT_EXPR;
+        expr_init = expr;
+        array_init = nullptr;
+        struct_init = nullptr;
+    }
+
+    ASTInitializer(ASTArrayInitializer *array)
+    {
+        kind = InitializerKind::INIT_ARRAY;
+        expr_init = nullptr;
+        array_init = array;
+        struct_init = nullptr;
+    }
+
+    ASTInitializer(ASTStructInitializer *strct)
+    {
+        kind = InitializerKind::INIT_STRUCT;
+        expr_init = nullptr;
+        array_init = nullptr;
+        struct_init = strct;
+    }
+};
+
+
+
+
 class ASTExpression
 {
 public:
