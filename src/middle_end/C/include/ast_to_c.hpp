@@ -52,6 +52,16 @@ public:
 				convert_enum_decl((ASTEnumDecl *)decl->decl);
 				break;
 			}
+			case ASTDeclarationType::STRUCT:
+			{
+				convert_struct_decl((ASTStructDecl *)decl->decl);
+				break;
+			}
+			case ASTDeclarationType::IMPL:
+			{
+				convert_impl_decl((ASTImplDecl *)decl->decl);
+				break;
+			}
 			case ASTDeclarationType::NATIVE:
 			{
 				convert_native_decl((ASTNativeDecl *)decl->decl);
@@ -82,7 +92,7 @@ public:
 				continue;
 			}
 
-			write_body("\t" + decl->ident + "_" + enum_const->ident);
+			write_body("\t" + enum_const->ident);
 
 			if(enum_const->has_value)
 			{
@@ -94,6 +104,233 @@ public:
 
 		write_body("};\n\n");
 	}
+
+
+	void convert_struct_decl(ASTStructDecl *decl)
+	{
+		write_body("struct " + decl->ident + "\n{\n");
+
+		int arg_length = decl->properties.size();
+		int i = 0;
+
+		for (ASTStructProperty *arg : decl->properties)
+		{
+			if (arg == nullptr)
+			{
+				continue;
+			}
+
+			std::string data_type;
+
+			switch(arg->type->type)
+			{
+				case ASTDataType::CHAR:
+				{
+					data_type = "char ";
+					break;
+				}
+				case ASTDataType::I32:
+				{
+					data_type = "int";
+					break;
+				}
+				case ASTDataType::I64:
+				{
+					data_type = "long int";
+					break;
+				}
+				case ASTDataType::U32:
+				{
+					data_type = "unsigned int";
+					break;
+				}
+				case ASTDataType::U64:
+				{
+					data_type = "unsigned long int";
+					break;
+				}
+				case ASTDataType::F32:
+				{
+					data_type = "float";
+					break;
+				}
+				case ASTDataType::F64:
+				{
+					data_type = "double";
+					break;
+				}
+				default:
+				{
+					break;
+				}
+			}
+
+			data_type += " ";
+			for (int i = 0; i < arg->type->ptr; i++)
+			{
+				data_type += "*";
+			}
+
+			write_body("\t" + data_type + arg->ident);
+			write_body(";\n");
+		}
+
+
+		write_body("};\n\n");
+	}
+
+
+
+	void convert_impl_decl(ASTImplDecl *decl)
+	{
+
+		for (ASTMethodDecl *method : decl->methods)
+		{
+			if (method == nullptr)
+			{
+				continue;
+			}
+			
+
+			write_body("\n");
+
+			convert_method_decl(method,decl->ident);
+
+			write_body("\n");
+		}
+
+	}
+
+
+
+	void convert_method_decl(ASTMethodDecl *decl,std::string base)
+	{
+		switch(decl->return_type->type)
+		{
+			case ASTDataType::I32:
+			{
+				write_body("int ");
+				break;
+			}
+			case ASTDataType::I64:
+			{
+				write_body("long int ");
+				break;
+			}
+			case ASTDataType::U32:
+			{
+				write_body("unsigned int ");
+				break;
+			}
+			case ASTDataType::U64:
+			{
+				write_body("unsigned long int ");
+				break;
+			}
+			case ASTDataType::F32:
+			{
+				write_body(" ");
+				break;
+			}
+			case ASTDataType::F64:
+			{
+				write_body("double ");
+				break;
+			}
+		}
+
+		write_body(base + "_" + decl->ident + "(");
+
+		int arg_length = decl->arguments.size();
+		int i = 0;
+
+		for (ASTFunctionArgument *arg : decl->arguments)
+		{
+			if (arg == nullptr)
+			{
+				continue;
+			}
+
+			std::string data_type;
+
+			switch(arg->type->type)
+			{
+				case ASTDataType::CHAR:
+				{
+					data_type = "char ";
+					break;
+				}
+				case ASTDataType::I32:
+				{
+					data_type = "int";
+					break;
+				}
+				case ASTDataType::I64:
+				{
+					data_type = "long int";
+					break;
+				}
+				case ASTDataType::U32:
+				{
+					data_type = "unsigned int";
+					break;
+				}
+				case ASTDataType::U64:
+				{
+					data_type = "unsigned long int";
+					break;
+				}
+				case ASTDataType::F32:
+				{
+					data_type = "float";
+					break;
+				}
+				case ASTDataType::F64:
+				{
+					data_type = "double";
+					break;
+				}
+				case ASTDataType::ENUM:
+				{
+					data_type = "enum " + arg->type->ident;
+					break;
+				}
+				case ASTDataType::STRUCT:
+				{
+					data_type = "struct " + arg->type->ident;
+					break;
+				}
+				default:
+				{
+					break;
+				}
+			}
+
+			data_type += " ";
+			for (int i = 0; i < arg->type->ptr; i++)
+			{
+				data_type += "*";
+			}
+
+			write_body(data_type + arg->ident);
+
+			if(i++ + 1 >= arg_length)
+			{
+				break;
+			}
+
+			write_body(",");
+
+		}
+
+		write_body(")\n");
+		convert_block_stmt(decl->block);
+	}
+
+
+
+
+
 
 
 
@@ -493,6 +730,11 @@ public:
 				data_type = "enum " + stmt->type->ident + " ";
 				break;
 			}
+			case ASTDataType::STRUCT:
+			{
+				data_type = "struct " + stmt->type->ident + " ";
+				break;
+			}
 			default:
 			{
 
@@ -501,16 +743,34 @@ public:
 			}
 		}
 
-		std::cout << "enum :===> " << stmt->type->ident << std::endl;
-
 		for(int i = 0; i < stmt->type->ptr; i++)
 		{
 			data_type += "*";
 		}
 
-		write_body(data_type + stmt->ident + " = ");
-		convert_expr(stmt->expr);
-		write_body(";\n");
+		std::string new_line;
+		write_body(data_type + stmt->true_ident + " = ");
+
+		if(stmt->init->type == ASTVarInitType::SINGLE)
+		{
+			convert_expr(((ASTVarSingleInit *)stmt->init->init)->expr);
+		}
+		else if(stmt->init->type == ASTVarInitType::STRUCT)
+		{
+			ASTVarStructMember map = ((ASTVarStructInit *)stmt->init->init)->members;
+			write_body("(struct " + ((ASTVarStructInit *)stmt->init->init)->ident + "){\n");
+			for (auto it = map.table.begin(); it != map.table.end(); ++it)
+			{
+				write_body(tab + "\t." + it->first + " = ");
+				convert_expr(it->second);
+				write_body(",\n");  
+			}
+			write_body(tab + "}");
+			new_line = "\n";
+		}
+
+		
+		write_body(";\n" + new_line);
 	}
 
 
@@ -524,137 +784,183 @@ public:
 	}
 
 
-	void convert_expr(ASTExpression *expr)
+	std::string convert_expr(ASTExpression *expr,bool write = true,std::string dot = ".")
 	{
 		switch (expr->type)
 		{
 			case ASTExpressionType::CAST:
 			{
-				convert_cast_expr(expr->expr,expr->data_type);
+				convert_cast_expr(expr->expr,expr->data_type,write);
 				break;
 			}
 			case ASTExpressionType::STRING:
 			{
-				convert_string_expr(expr->expr,expr->data_type);
+				convert_string_expr(expr->expr,expr->data_type,write);
 				break;
 			}
 			case ASTExpressionType::I32:
 			{
-				convert_i32_expr(expr->expr,expr->data_type);
+				convert_i32_expr(expr->expr,expr->data_type,write);
 				break;
 			}
 			case ASTExpressionType::I64:
 			{
-				convert_i64_expr(expr->expr,expr->data_type);
+				convert_i64_expr(expr->expr,expr->data_type,write);
 				break;
 			}
 			case ASTExpressionType::U32:
 			{
-				convert_u32_expr(expr->expr,expr->data_type);
+				convert_u32_expr(expr->expr,expr->data_type,write);
 				break;
 			}
 			case ASTExpressionType::U64:
 			{
-				convert_u64_expr(expr->expr,expr->data_type);
+				convert_u64_expr(expr->expr,expr->data_type,write);
 				break;
 			}
 			case ASTExpressionType::F32:
 			{
-				convert_f32_expr(expr->expr,expr->data_type);
+				convert_f32_expr(expr->expr,expr->data_type,write);
 				break;
 			}
 			case ASTExpressionType::F64:
 			{
-				convert_f64_expr(expr->expr,expr->data_type);
+				convert_f64_expr(expr->expr,expr->data_type,write);
 				break;
 			}
 			case ASTExpressionType::FUNCTION_CALL:
 			{
-				convert_function_call_expr(expr->expr,expr->data_type);
+				convert_function_call_expr(expr->expr,expr->data_type,write);
 				break;
 			}
 			case ASTExpressionType::VARIABLE:
 			{
-				convert_variable_expr(expr->expr,expr->data_type);
+				return convert_variable_expr(expr->expr,expr->data_type,write);
+				break;
+			}
+			case ASTExpressionType::SELF:
+			{
+				convert_self_expr(expr->expr,expr->data_type,write);
 				break;
 			}
 			case ASTExpressionType::ADDRESS_OF:
 			{
-				convert_address_of_expr(expr->expr,expr->data_type);
+				convert_address_of_expr(expr->expr,expr->data_type,write);
 				break;
 			}
 			case ASTExpressionType::PTR_READ:
 			{
 				write_body("(");
-				convert_ptr_read_expr(expr->expr,expr->data_type);
+				convert_ptr_read_expr(expr->expr,expr->data_type,write);
 				write_body(")");
 				break;
 			}
 			case ASTExpressionType::PTR_WRITE:
 			{
 				write_body("(");
-				convert_ptr_write_expr(expr->expr,expr->data_type);
+				convert_ptr_write_expr(expr->expr,expr->data_type,write);
 				write_body(")");
 				break;
 			}
 			case ASTExpressionType::ASSIGN:
 			{
-				convert_assign_expr(expr->expr,expr->data_type);
+				convert_assign_expr(expr->expr,expr->data_type,write);
 				break;
 			}
 			case ASTExpressionType::ENUM_ACCESS:
 			{
-				convert_enum_access_expr(expr->expr,expr->data_type);
+				convert_enum_access_expr(expr->expr,expr->data_type,write);
+				break;
+			}
+			case ASTExpressionType::STRUCT_ACCESS:
+			{
+				return convert_struct_access_expr(expr->expr,expr->data_type,write,dot);
+				break;
+			}
+			case ASTExpressionType::STRUCT_PTR_ACCESS:
+			{
+				return convert_struct_ptr_access_expr(expr->expr,expr->data_type,write,dot);
 				break;
 			}
 			case ASTExpressionType::UNARY:
 			{
-				convert_unary_expr(expr->expr,expr->data_type);
+				convert_unary_expr(expr->expr,expr->data_type,write);
 				break;
 			}
 			case ASTExpressionType::BINARY:
 			{
-				convert_binary_expr(expr->expr,expr->data_type);
+				convert_binary_expr(expr->expr,expr->data_type,write);
 				break;
 			}
 		}
 
-		
+		return "";
 
 	}
 
 
 
-	void convert_enum_access_expr(void *expr,DataType expr_type)
+	std::string convert_struct_ptr_access_expr(void *expr,DataType expr_type,bool write = true,std::string dot = "->")
+	{
+		if(dot == ".")
+		{
+			dot = "->";
+		}
+
+		std::string ret = convert_expr(((ASTStructPtrAccessExpr *)expr)->base);
+		write_body(dot + ((ASTStructPtrAccessExpr *)expr)->member);
+
+		return ret;
+	}
+
+
+	std::string convert_struct_access_expr(void *expr,DataType expr_type,bool write = true,std::string dot = ".")
+	{
+		std::string ret;
+
+		ret = convert_expr(((ASTStructAccessExpr *)expr)->base,write);
+
+		if(dot != ".")
+		{
+			write_body(((ASTStructAccessExpr *)expr)->base_type);
+		}
+
+		write_body(dot + ((ASTStructAccessExpr *)expr)->member);
+
+		return ret;
+	}
+
+
+	void convert_enum_access_expr(void *expr,DataType expr_type,bool write = true)
 	{
 		write_body(((ASTEnumAccessExpr *)expr)->base + "_" + ((ASTEnumAccessExpr *)expr)->member);
 	}
 
-	void convert_string_expr(void *expr,DataType expr_type)
+	void convert_string_expr(void *expr,DataType expr_type,bool write = true)
 	{
 		write_body("\"" + ((ASTStringExpr *)expr)->value +"\"");
 	}
 
-	void convert_i32_expr(void *expr,DataType expr_type)
+	void convert_i32_expr(void *expr,DataType expr_type,bool write = true)
 	{
 		write_body(std::to_string(((ASTI32Expr *)expr)->value));
 	}
 
 
-	void convert_i64_expr(void *expr,DataType expr_type)
+	void convert_i64_expr(void *expr,DataType expr_type,bool write = true)
 	{
 		write_body(std::to_string(((ASTI64Expr *)expr)->value));
 	}
 
 
 
-	void convert_u64_expr(void *expr,DataType expr_type)
+	void convert_u64_expr(void *expr,DataType expr_type,bool write = true)
 	{
 		write_body(std::to_string(((ASTU64Expr *)expr)->value));
 	}
 
 
-	void convert_u32_expr(void *expr,DataType expr_type)
+	void convert_u32_expr(void *expr,DataType expr_type,bool write = true)
 	{
 		write_body(std::to_string(((ASTU32Expr *)expr)->value));
 	}
@@ -662,25 +968,64 @@ public:
 
 
 
-	void convert_f64_expr(void *expr,DataType expr_type)
+	void convert_f64_expr(void *expr,DataType expr_type,bool write = true)
 	{
 		write_body(std::to_string(((ASTF64Expr *)expr)->value));
 	}
 
 
-	void convert_f32_expr(void *expr,DataType expr_type)
+	void convert_f32_expr(void *expr,DataType expr_type,bool write = true)
 	{
 		write_body(std::to_string(((ASTF32Expr *)expr)->value));
 	}
 
 
-	void convert_function_call_expr(void *expr,DataType expr_type)
+	void convert_function_call_expr(void *expr,DataType expr_type,bool write = true)
 	{
 		ASTFunctionCallExpr *fn_expr = (ASTFunctionCallExpr *)expr;
 
-		write_body(fn_expr->ident + "(");
+		std::string dot = ".";
+		std::string ptr;
+		
+		if(fn_expr->base->type == ASTExpressionType::STRUCT_ACCESS)
+		{
+			dot = "_";
+			ptr = ".";
+		}
+		else if(fn_expr->base->type == ASTExpressionType::STRUCT_PTR_ACCESS)
+		{
+			dot = "_";
+			ptr = "->";
+		}
+
+		std::string is_self;
+		if(ptr == ".")
+		{
+			is_self = convert_expr(fn_expr->base,false,dot);
+		}
+		else
+		{
+			convert_expr(fn_expr->base,true,dot);
+		}
+
+		write_body("(");
+
+		if(ptr == ".")
+		{
+			write_body("&" + is_self);
+		}
+		else if(ptr == "->")
+		{
+			write_body(is_self);
+		}
 
 		int arg_length = fn_expr->args.size();
+
+		if(arg_length > 0 and dot == "_")
+		{
+			write_body(",");
+		}
+
 		int i = 0;
 
 		for ( ASTExpression *arg : fn_expr->args)
@@ -699,15 +1044,29 @@ public:
 
 
 
-	void convert_variable_expr(void *expr,DataType expr_type)
+	std::string convert_variable_expr(void *expr,DataType expr_type,bool write = true)
 	{
 		ASTVariableExpr *var_expr = (ASTVariableExpr *)expr;
-		write_body(var_expr->ident);
+
+		if(write == true)
+		{
+			write_body(var_expr->true_ident);
+		}
+
+		return var_expr->true_ident;
 	}
 
 
 
-	void convert_address_of_expr(void *expr,DataType expr_type)
+	void convert_self_expr(void *expr,DataType expr_type,bool write = true)
+	{
+		ASTSelfExpr *self_expr = (ASTSelfExpr *)expr;
+		write_body(self_expr->ident);
+	}
+
+
+
+	void convert_address_of_expr(void *expr,DataType expr_type,bool write = true)
 	{
 		ASTAddressOfExpr *address_of_expr = (ASTAddressOfExpr *)expr;
 		write_body("&");
@@ -716,7 +1075,7 @@ public:
 
 
 
-	void convert_ptr_read_expr(void *expr,DataType expr_type)
+	void convert_ptr_read_expr(void *expr,DataType expr_type,bool write = true)
 	{
 		ASTPtrReadExpr *ptr_read_expr = (ASTPtrReadExpr *)expr;
 		write_body("*");
@@ -725,7 +1084,7 @@ public:
 
 
 
-	void convert_ptr_write_expr(void *expr,DataType expr_type)
+	void convert_ptr_write_expr(void *expr,DataType expr_type,bool write = true)
 	{
 		ASTPtrWriteExpr *ptr_write = (ASTPtrWriteExpr *)expr;
 		write_body("*");
@@ -737,7 +1096,7 @@ public:
 
 
 
-	void convert_assign_expr(void *expr,DataType expr_type)
+	void convert_assign_expr(void *expr,DataType expr_type,bool write = true)
 	{
 		ASTAssignExpr *assign_expr = (ASTAssignExpr *)expr;
 		convert_expr(assign_expr->lhs);
@@ -747,7 +1106,7 @@ public:
 
 
 
-	void convert_cast_expr(void *expr,DataType expr_type)
+	void convert_cast_expr(void *expr,DataType expr_type,bool write = true)
 	{
 		ASTCastExpr *cast_expr = (ASTCastExpr *)expr;
 	
@@ -795,7 +1154,7 @@ public:
 	}
 	
 
-	void convert_binary_expr(void *expr,DataType expr_type)
+	void convert_binary_expr(void *expr,DataType expr_type,bool write = true)
 	{
 		ASTBinaryExpr *bin_expr = (ASTBinaryExpr *)expr;
 
@@ -806,7 +1165,7 @@ public:
 
 
 
-	void convert_unary_expr(void *expr,DataType expr_type)
+	void convert_unary_expr(void *expr,DataType expr_type,bool write = true)
 	{
 		convert_unop(((ASTUnaryExpr *)expr)->op);
 		convert_expr(((ASTUnaryExpr *)expr)->rhs);

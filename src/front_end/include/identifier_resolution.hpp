@@ -109,6 +109,11 @@ public:
 				resolve_enum_decl((ASTEnumDecl *)decl->decl,ident_map);
 				break;
 			}
+            case ASTDeclarationType::NATIVE:
+			{
+				resolve_native_decl((ASTNativeDecl *)decl->decl,ident_map);
+				break;
+			}
 			case ASTDeclarationType::FUNCTION:
 			{
 				resolve_function((ASTFunctionDecl *)decl->decl,ident_map);
@@ -163,7 +168,7 @@ public:
 			}
 
             std::string ident = enum_constant->ident;
-            std::string constant_ident = "__C4_" + enum_ident + "_" + ident;
+            std::string constant_ident = enum_ident + "_" + ident;
             if (ident_map->lookup(constant_ident) and ident_map->get_current(constant_ident))
             {
                 fatal("redeclared enum constant " + ident + " in enum `" + enum_ident + "`");
@@ -175,6 +180,38 @@ public:
 
     }
     
+    
+    void resolve_native_decl(ASTNativeDecl *decl,Map *ident_map)
+    {
+        for(ASTFunctionDeclNative *fn : decl->functions)
+        {
+            resolve_function_native(fn,ident_map);
+        }
+    }
+
+    void resolve_function_native(ASTFunctionDeclNative *decl,Map *ident_map)
+    {
+        if (ident_map->lookup(decl->ident) and ident_map->get_current(decl->ident))
+        {
+            fatal("redeclared function " + decl->ident);
+        }
+        
+        ident_map->add(decl->ident,MapEntry(decl->ident,true,true));
+
+        Map new_ident_map = copy_ident_map(ident_map);
+
+
+        for (ASTFunctionArgument *arg : decl->arguments)
+        {
+            if (arg == nullptr)
+            {
+                continue;
+            }
+
+            resolve_function_argument(arg,&new_ident_map);
+        }
+    }
+
 
     void resolve_function(ASTFunctionDecl *decl,Map *ident_map)
     {
@@ -286,9 +323,22 @@ public:
             std::string tmp_name = make_tmp(decl->ident + "_");
             ident_map->add(decl->ident,MapEntry(tmp_name,true));
 
-            if (decl->expr != nullptr)
+            if (decl->init != nullptr)
             {
-                resolve_expr(decl->expr,ident_map);
+                if(decl->init->type == ASTVarInitType::SINGLE)
+                {
+                    resolve_expr(((ASTVarSingleInit *)decl->init->init)->expr,ident_map);
+                }
+                else if(decl->init->type == ASTVarInitType::STRUCT)
+                {
+                    ASTVarStructMember map = ((ASTVarStructInit *)decl->init->init)->members;
+                    
+                    for (auto it = map.table.begin(); it != map.table.end(); ++it)
+                    {
+                        resolve_expr(it->second,ident_map);
+                    }
+                    
+                }
             }
 
             decl->ident = tmp_name;
@@ -391,27 +441,20 @@ public:
 			{
                 ASTFunctionCallExpr *fn_expr = (ASTFunctionCallExpr *)expr->expr;
                 //fatal(" fatal  -> " + var_expr->ident);
-                std::string name = fn_expr->ident;
-                if (ident_map->lookup(name))
-                {
-                    fn_expr->ident = ident_map->get_name(name);
 
-                    for (ASTExpression *arg : fn_expr->args)
+                resolve_expr(fn_expr->base,ident_map);
+
+                for (ASTExpression *arg : fn_expr->args)
+                {
+                    if (arg == nullptr)
                     {
-                        if (arg == nullptr)
-                        {
-                            continue;
-                        }
-
-                        resolve_expr(arg,ident_map);
-
+                        continue;
                     }
-                    
+
+                    resolve_expr(arg,ident_map);
+
                 }
-                else
-                {
-                    fatal("undeclared function called  :  " + name);
-                }
+               
                 break;
             }
             case ASTExpressionType::UNARY:

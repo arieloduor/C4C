@@ -62,6 +62,7 @@ enum class ASTDeclarationType
 	NATIVE,
 	ENUM,
 	STRUCT,
+	IMPL,
 };
 
 
@@ -228,10 +229,6 @@ public:
 	std::string ident;
 	std::vector<ASTMethodDecl *> methods;
 
-	ASTImplDecl()
-	{
-		//
-	}
 
 	void add_ident(std::string ident)
 	{
@@ -459,25 +456,87 @@ public:
 	}
 };
 
+
+class ASTVarSingleInit
+{
+public:
+	ASTExpression *expr;
+
+	ASTVarSingleInit(ASTExpression *expr)
+	{
+		this->expr = expr;
+	}
+};
+
+
+class ASTVarStructMember
+{
+public:
+    std::map<std::string,ASTExpression *> table;
+    bool lookup(std::string name) 
+    {
+        if (this->table.find(name) == this->table.end())
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    void add(std::string name,ASTExpression *expr)
+    {
+        //this->map[name] = symbol;
+        this->table.emplace(name, expr);
+    }
+
+    ASTExpression *get(std::string name)
+    {
+        return this->table.at(name);
+        //return this->map[name];
+    }
+
+};
+
+
+
+
+class ASTVarStructInit
+{
+public:
+	std::string ident;
+	ASTVarStructMember members;
+	void add_member(std::string member,ASTExpression *expr)
+	{
+		this->members.add(member,expr);
+	}
+
+	void add_ident(std::string ident)
+	{
+		this->ident = ident;
+	}
+};
+
+
+enum class ASTVarInitType
+{
+	SINGLE,
+	STRUCT,
+};
+
+
 class ASTVarInit
 {
 public:
-	bool is_single = true;
-	ASTExpression *single;
-	std::vector<ASTVarInit *>compound;
+	ASTVarInitType type;
+	void *init;
 
-	void add_single(ASTExpression *single)
+	ASTVarInit(ASTVarInitType type,void *init)
 	{
-		this->is_single = true;
-		this->single = single;
-	}
-
-	void add_compound(ASTVarInit *compound)
-	{
-		this->is_single = false;
-		this->compound.push_back(compound);
+		this->type = type;
+		this->init = init;
 	}
 };
+
 
 
 class ASTVarDecl
@@ -485,17 +544,18 @@ class ASTVarDecl
 public:
 	ASTType *type;
 	std::string ident;
-	ASTExpression *expr;
+	std::string true_ident;
+	ASTVarInit *init;
 	bool is_public = false;
 	bool is_static = false;
 	bool is_extern = false;
 	//ASTBox box;
 
-	ASTVarDecl(ASTType *type,std::string ident,ASTExpression *expr,bool is_public=false,bool is_static=false,bool is_extern = false)
+	ASTVarDecl(ASTType *type,std::string ident,ASTVarInit *init,bool is_public=false,bool is_static=false,bool is_extern = false)
 	{
 		this->type = type;
-		this->ident = ident;
-		this->expr = expr;
+		this->ident = this->true_ident = ident;
+		this->init = init;
 		this->is_public = is_public;
 		this->is_static = is_static;
 		this->is_extern = is_extern;
@@ -668,6 +728,10 @@ enum class ASTExpressionType
 	ARRAY,
 	ENUM_ACCESS,
 	STRUCT_ACCESS,
+	STRUCT_PTR_ACCESS,
+	POST_INCREMENT,
+	POST_DECREMENT,
+	SELF,
 };
 
 
@@ -675,6 +739,8 @@ enum class ASTUnaryOperator
 {
 	COMPLEMENT = 1,
 	NEGATE,
+	POST_INCREMENT,
+	POST_DECREMENT,
 	None,
 };
 
@@ -711,6 +777,12 @@ public:
 	void *expr;
 	DataType data_type;
 	PointerType ptr_type;
+	AggType agg_type;
+
+	void add_agg_type(std::string ident)
+	{
+		this->agg_type.set(ident);
+	}
 
 
 	void add_pointer_type(bool is_ptr,DataType base_type,int ptr_no)
@@ -738,6 +810,12 @@ public:
 	ASTExpression *expr;
 	DataType data_type;
 	PointerType ptr_type;
+	AggType agg_type;
+
+	void add_agg_type(std::string ident)
+	{
+		this->agg_type.set(ident);
+	}
 
 	void add_pointer_type(bool is_ptr,DataType base_type,int ptr_no)
 	{
@@ -765,6 +843,12 @@ public:
 	ASTExpression *expr;
 	DataType data_type;
 	PointerType ptr_type;
+	AggType agg_type;
+
+	void add_agg_type(std::string ident)
+	{
+		this->agg_type.set(ident);
+	}
 
 	void add_pointer_type(bool is_ptr,DataType base_type,int ptr_no)
 	{
@@ -791,6 +875,12 @@ public:
 	ASTExpression *data;
 	DataType data_type;
 	PointerType ptr_type;
+	AggType agg_type;
+
+	void add_agg_type(std::string ident)
+	{
+		this->agg_type.set(ident);
+	}
 
 	void add_pointer_type(bool is_ptr,DataType base_type,int ptr_no)
 	{
@@ -818,6 +908,12 @@ public:
 	ASTExpression *index;
 	DataType data_type;
 	PointerType ptr_type;
+	AggType agg_type;
+
+	void add_agg_type(std::string ident)
+	{
+		this->agg_type.set(ident);
+	}
 
 	void add_pointer_type(bool is_ptr,DataType base_type,int ptr_no)
 	{
@@ -843,6 +939,7 @@ class ASTStringExpr
 public:
 	std::string value;
 	DataType data_type;
+
 	void add_data_type(DataType data_type)
 	{
 		this->data_type = data_type;
@@ -987,6 +1084,72 @@ public:
 
 
 
+class ASTStructAccessExpr
+{
+public:
+	ASTExpression *base;
+	std::string member;
+	DataType data_type;
+	AggType agg_type;
+	std::string base_type;
+
+	void add_base_type(std::string ident)
+	{
+		this->base_type = ident;
+	}
+
+	void add_agg_type(std::string ident)
+	{
+		this->agg_type.set(ident);
+	}
+
+	void add_data_type(DataType data_type)
+	{
+		this->data_type = data_type;
+	}
+
+	ASTStructAccessExpr(ASTExpression *base,std::string member)
+	{
+		this->base = base;
+		this->member = member;
+	}
+};
+
+
+
+
+class ASTStructPtrAccessExpr
+{
+public:
+	ASTExpression *base;
+	std::string member;
+	DataType data_type;
+	AggType agg_type;
+	std::string base_type;
+
+	void add_base_type(std::string ident)
+	{
+		this->base_type = ident;
+	}
+
+	void add_agg_type(std::string ident)
+	{
+		this->agg_type.set(ident);
+	}
+
+	void add_data_type(DataType data_type)
+	{
+		this->data_type = data_type;
+	}
+
+	ASTStructPtrAccessExpr(ASTExpression *base,std::string member)
+	{
+		this->base = base;
+		this->member = member;
+	}
+};
+
+
 
 class ASTEnumAccessExpr
 {
@@ -1013,8 +1176,15 @@ class ASTVariableExpr
 {
 public:
 	std::string ident;
+	std::string true_ident;
 	DataType data_type;
 	PointerType ptr_type;
+	AggType agg_type;
+
+	void add_agg_type(std::string ident)
+	{
+		this->agg_type.set(ident);
+	}
 
 	void add_pointer_type(bool is_ptr,DataType base_type,int ptr_no)
 	{
@@ -1029,6 +1199,38 @@ public:
 	ASTVariableExpr(std::string ident)
 	{
 		this->ident = ident;
+		this->true_ident = ident;
+	}
+};
+
+
+
+class ASTSelfExpr
+{
+public:
+	std::string ident;
+	DataType data_type;
+	PointerType ptr_type;
+	AggType agg_type;
+
+	void add_agg_type(std::string ident)
+	{
+		this->agg_type.set(ident);
+	}
+
+	void add_pointer_type(bool is_ptr,DataType base_type,int ptr_no)
+	{
+		this->ptr_type.set(is_ptr,base_type,ptr_no);
+	}
+
+	void add_data_type(DataType data_type)
+	{
+		this->data_type = data_type;
+	}
+
+	ASTSelfExpr(std::string ident)
+	{
+		this->ident = ident;
 	}
 };
 
@@ -1040,6 +1242,12 @@ public:
 	ASTExpression *rhs;
 	DataType data_type;
 	PointerType ptr_type;
+	AggType agg_type;
+
+	void add_agg_type(std::string ident)
+	{
+		this->agg_type.set(ident);
+	}
 
 	void add_pointer_type(bool is_ptr,DataType base_type,int ptr_no)
 	{
@@ -1093,6 +1301,12 @@ public:
 	ASTExpression *rhs;
 	DataType data_type;
 	PointerType ptr_type;
+	AggType agg_type;
+
+	void add_agg_type(std::string ident)
+	{
+		this->agg_type.set(ident);
+	}
 
 	void add_pointer_type(bool is_ptr,DataType base_type,int ptr_no)
 	{
@@ -1125,6 +1339,12 @@ public:
 	ASTExpression *rhs;
 	DataType data_type;
 	PointerType ptr_type;
+	AggType agg_type;
+
+	void add_agg_type(std::string ident)
+	{
+		this->agg_type.set(ident);
+	}
 
 	void add_pointer_type(bool is_ptr,DataType base_type,int ptr_no)
 	{
@@ -1150,7 +1370,7 @@ public:
 class ASTFunctionCallExpr
 {
 public:
-	std::string ident;
+	ASTExpression *base;
 	std::vector<ASTExpression *> args;
 	DataType data_type;
 	void add_data_type(DataType data_type)
@@ -1159,9 +1379,9 @@ public:
 	}
 
 
-	inline void add_ident(std::string ident)
+	inline void add_base(ASTExpression *base)
 	{
-		this->ident = ident;
+		this->base = base;
 	}
 
 	inline void add_arg(ASTExpression *arg)
@@ -1179,6 +1399,12 @@ public:
 	ASTExpression *rhs;
 	DataType data_type;
 	PointerType ptr_type;
+	AggType agg_type;
+
+	void add_agg_type(std::string ident)
+	{
+		this->agg_type.set(ident);
+	}
 
 	void add_pointer_type(bool is_ptr,DataType base_type,int ptr_no)
 	{

@@ -9,6 +9,7 @@
 enum class DataType
 {
     FUNCTION = 1,
+    CHAR,
     I32,
     I64,
     U32,
@@ -16,8 +17,20 @@ enum class DataType
     F32,
     F64,
     PTR,
+    ENUM,
+    STRUCT,
 };
 
+
+class AggType
+{
+public:
+    std::string ident;
+    void set(std::string ident)
+    {
+        this->ident;
+    }
+};
 
 
 class PointerType

@@ -56,12 +56,6 @@ struct Vga:
     i32 depth
 :
 
-impl Vga:
-    fn get_height()->i32:
-        return self->height
-    :
-:
-
 enum Color:
     RED = 7
     GREEN
@@ -72,22 +66,12 @@ native "C":
     fn puts(char *str)->i32
 :
 
-
-
 fn main()->i32:
     //char ch = 65
     //char *ptr = "hello world"
     //puts(ptr)
     Color color = Color.BLUE
-    Vga vga = Vga:
-        .height = 25,
-        .width = 80,
-        .depth = 2,
-    :
-
-    Vga *vga_ptr = &vga  
-    puts("hi")
-    return vga.get_height()
+    return color
 :
 
 /*

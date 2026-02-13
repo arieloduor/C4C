@@ -39,6 +39,7 @@ public:
     DataType type;
     TypeFunction val;
     PointerType ptr_type;
+    AggType agg_type;
     bool local = false;
     bool global = false;
     bool is_public = false;
@@ -62,6 +63,13 @@ public:
         this->ptr_type.is_ptr = is_ptr;
         this->ptr_type.base_type = base_type;
         this->ptr_type.ptr_no = ptr_no;
+    }
+
+
+
+    void add_agg_type(std::string ident)
+    {
+        this->agg_type.set(ident);
     }
 
     void add_return_type(DataType return_type)
@@ -191,6 +199,8 @@ public:
     {
         this->file_name = file_name;
         this->program = program;
+
+        return;
         
         SymbolTable *symbol_table = &table;
 
@@ -215,15 +225,22 @@ public:
 				check_function((ASTFunctionDecl *)decl->decl,symbol_table);
 				break;
 			}
+            case ASTDeclarationType::NATIVE:
+			{
+				check_native((ASTNativeDecl *)decl->decl,symbol_table);
+				break;
+			}
             case ASTDeclarationType::VARDECL:
 			{
-				check_global_vardecl((ASTVarDecl *)decl->decl,symbol_table);
+				//check_global_vardecl((ASTVarDecl *)decl->decl,symbol_table);
 				break;
 			}
 		}
 
     }
 
+
+    /*
 
     void check_global_vardecl(ASTVarDecl *decl,SymbolTable *symbol_table)
     {
@@ -385,6 +402,84 @@ public:
     }
 
 
+    */
+
+    void check_native(ASTNativeDecl *decl,SymbolTable *symbol_table)
+    {
+        for(ASTFunctionDeclNative *fn : decl->functions)
+        {
+            check_function_native(fn,symbol_table);
+        }
+    }
+
+    void check_function_native(ASTFunctionDeclNative *decl,SymbolTable *symbol_table)
+    {
+        DataType return_type;
+        if (decl->return_type->type == ASTDataType::I32)
+        {
+            return_type = DataType::I32;
+        }
+        else if (decl->return_type->type == ASTDataType::I64)
+        {
+            return_type = DataType::I64;
+            //DEBUG_PANIC("correct type : i64  =>  " + decl->ident );
+        }
+        else
+        {
+            fatal(" invalid return type in function " + decl->ident);
+        }
+
+
+        TypeFunction f_type(return_type,decl->arguments.size());
+
+
+        if (symbol_table->lookup(decl->ident))
+        {
+            fatal("redeclared function " + decl->ident);
+        }
+        
+        Symbol symbol(decl->ident,DataType::FUNCTION);
+        symbol.add_val(f_type);
+        symbol.add_return_type(return_type);
+
+        symbol_table->add(decl->ident,symbol);
+
+        for (ASTFunctionArgument *arg : decl->arguments)
+        {
+            if (arg == nullptr)
+            {
+                continue;
+            }
+
+            DataType arg_datatype;
+            switch (arg->type->type)
+            {
+                case ASTDataType::CHAR:
+                {
+                    arg_datatype = DataType::CHAR;
+                    break;
+                }
+                case ASTDataType::I32:
+                {
+                    arg_datatype = DataType::I32;
+                    break;
+                }
+                case ASTDataType::I64:
+                {
+                    arg_datatype = DataType::I64;
+                    break;
+                }
+                default:
+                {
+                    fatal(" unsupported type in function argument ");
+                }
+            }
+
+            symbol_table->add(arg->ident,Symbol(arg->ident,arg_datatype));
+
+        }
+    }
+
     void check_function(ASTFunctionDecl *decl,SymbolTable *symbol_table)
     {
         DataType return_type;
@@ -428,6 +523,11 @@ public:
             DataType arg_datatype;
             switch (arg->type->type)
             {
+                case ASTDataType::CHAR:
+                {
+                    arg_datatype = DataType::CHAR;
+                    break;
+                }
                 case ASTDataType::I32:
                 {
                     arg_datatype = DataType::I32;
@@ -440,7 +540,7 @@ public:
                 }
                 default:
                 {
-                    fatal(" unsupported type in function argument ");
+                    fatal(" unsupported type in function argument $");
                 }
             }
 
@@ -516,6 +616,7 @@ public:
         DataType base_type;
         int ptr_no = 0;
         DataType type;
+        std::string agg_ident;
 
         switch(decl->type->type)
         {
@@ -540,6 +641,20 @@ public:
             case ASTDataType::U64:
             {
                 base_type = DataType::U64;
+                DEBUG_PRINT(" vardecl =>  "," u64 ");
+                break;
+            }
+            case ASTDataType::ENUM:
+            {
+                base_type = DataType::ENUM;
+                agg_ident = decl->type->ident;
+                DEBUG_PRINT(" vardecl =>  "," u64 ");
+                break;
+            }
+            case ASTDataType::STRUCT:
+            {
+                base_type = DataType::STRUCT;
+                agg_ident = decl->type->ident;
                 DEBUG_PRINT(" vardecl =>  "," u64 ");
                 break;
             }
@@ -569,7 +684,7 @@ public:
             {
                 if (decl->is_extern)
                 {
-                    if(decl->expr != nullptr)
+                    if(decl->init != nullptr)
                     {
                         fatal(" local extern variable declared with an initializer is illegal");
                     }
@@ -589,6 +704,7 @@ public:
                         symbol.add_global(true);
                         symbol.add_init(false);
                         symbol.add_pointer_type(is_ptr,base_type,ptr_no);
+                        symbol.add_agg_type(agg_ident);
                         symbol_table->add(decl->ident,symbol);
                     }
                 }
@@ -599,16 +715,16 @@ public:
                     symbol.add_init(false);
                     symbol.add_pointer_type(is_ptr,base_type,ptr_no);
 
-                    if (decl->expr == nullptr)
+                    if (decl->init == nullptr)
                     {
                         symbol.add_init(true);
                         symbol.add_int_init(0);
-                    }
-                    else if (decl->expr->type == ASTExpressionType::I32)
+                    }/*
+                    else if (decl->init->type == ASTExpressionType::I32)
                     {
                         symbol.add_init(true);
                         symbol.add_int_init(get_i32_init(decl->expr->expr));
-                    }
+                    }*/
                     else
                     {
                         fatal(" non-constant initializer used on local static variable");
@@ -620,11 +736,25 @@ public:
                 {
                     Symbol symbol(decl->ident,type,true);
                     symbol.add_pointer_type(is_ptr,base_type,ptr_no);
+                    symbol.add_agg_type(agg_ident);
                     symbol_table->add(decl->ident,symbol);
 
-                    if (decl->expr != nullptr)
+                    if (decl->init != nullptr)
                     {
-                        check_expr(decl->expr,symbol_table);
+                        if(decl->init->type == ASTVarInitType::SINGLE)
+                        {
+                            check_expr(((ASTVarSingleInit *)decl->init->init)->expr,symbol_table);
+                        }
+                        else if(decl->init->type == ASTVarInitType::STRUCT)
+                        {
+                            ASTVarStructMember map = ((ASTVarStructInit *)decl->init->init)->members;
+                            
+                            for (auto it = map.table.begin(); it != map.table.end(); ++it)
+                            {
+                                check_expr(it->second,symbol_table);
+                            }
+                            
+                        }
                     }
                 }
                 break;
@@ -633,7 +763,7 @@ public:
             {
                 if (decl->is_extern)
                 {
-                    if(decl->expr != nullptr)
+                    if(decl->init != nullptr)
                     {
                         fatal(" local extern variable declared with an initializer is illegal");
                     }
@@ -659,16 +789,16 @@ public:
                     symbol.add_global(false);
                     symbol.add_init(false);
 
-                    if (decl->expr == nullptr)
+                    if (decl->init == nullptr)
                     {
                         symbol.add_init(true);
                         symbol.add_int_init(0);
-                    }
+                    }/*
                     else if (decl->expr->type == ASTExpressionType::I32)
                     {
                         symbol.add_init(true);
                         symbol.add_int_init(get_i32_init(decl->expr->expr));
-                    }
+                    }*/
                     else
                     {
                         fatal(" non-constant initializer used on local static variable");
@@ -681,9 +811,22 @@ public:
                 {
                     symbol_table->add(decl->ident,Symbol(decl->ident,DataType::I64,true));
 
-                    if (decl->expr != nullptr)
+                    if (decl->init != nullptr)
                     {
-                        check_expr(decl->expr,symbol_table);
+                        if(decl->init->type == ASTVarInitType::SINGLE)
+                        {
+                            check_expr(((ASTVarSingleInit *)decl->init->init)->expr,symbol_table);
+                        }
+                        else if(decl->init->type == ASTVarInitType::STRUCT)
+                        {
+                            ASTVarStructMember map = ((ASTVarStructInit *)decl->init->init)->members;
+                            
+                            for (auto it = map.table.begin(); it != map.table.end(); ++it)
+                            {
+                                check_expr(it->second,symbol_table);
+                            }
+                            
+                        }
                     }
                 }
                 break;
@@ -692,7 +835,7 @@ public:
             {
                 if (decl->is_extern)
                 {
-                    if(decl->expr != nullptr)
+                    if(decl->init != nullptr)
                     {
                         fatal(" local extern variable declared with an initializer is illegal");
                     }
@@ -718,11 +861,11 @@ public:
                     symbol.add_global(false);
                     symbol.add_init(false);
 
-                    if (decl->expr == nullptr)
+                    if (decl->init == nullptr)
                     {
                         symbol.add_init(true);
                         symbol.add_int_init(0);
-                    }
+                    }/*
                     else if (decl->expr->type == ASTExpressionType::U32)
                     {
                         symbol.add_init(true);
@@ -731,7 +874,7 @@ public:
                     else
                     {
                         fatal(" non-constant initializer used on local static variable");
-                    }
+                    }*/
 
                     symbol_table->add(decl->ident,symbol);
                 }
@@ -740,9 +883,22 @@ public:
                 {
                     symbol_table->add(decl->ident,Symbol(decl->ident,DataType::U32,true));
 
-                    if (decl->expr != nullptr)
+                    if (decl->init != nullptr)
                     {
-                        check_expr(decl->expr,symbol_table);
+                        if(decl->init->type == ASTVarInitType::SINGLE)
+                        {
+                            check_expr(((ASTVarSingleInit *)decl->init->init)->expr,symbol_table);
+                        }
+                        else if(decl->init->type == ASTVarInitType::STRUCT)
+                        {
+                            ASTVarStructMember map = ((ASTVarStructInit *)decl->init->init)->members;
+                            
+                            for (auto it = map.table.begin(); it != map.table.end(); ++it)
+                            {
+                                check_expr(it->second,symbol_table);
+                            }
+                            
+                        }
                     }
                 }
                 break;
@@ -751,7 +907,7 @@ public:
             {
                 if (decl->is_extern)
                 {
-                    if(decl->expr != nullptr)
+                    if(decl->init != nullptr)
                     {
                         fatal(" local extern variable declared with an initializer is illegal");
                     }
@@ -777,16 +933,16 @@ public:
                     symbol.add_global(false);
                     symbol.add_init(false);
 
-                    if (decl->expr == nullptr)
+                    if (decl->init == nullptr)
                     {
                         symbol.add_init(true);
                         symbol.add_int_init(0);
-                    }
+                    }/*
                     else if (decl->expr->type == ASTExpressionType::U32)
                     {
                         symbol.add_init(true);
                         symbol.add_int_init(get_i32_init(decl->expr->expr));
-                    }
+                    }*/
                     else
                     {
                         fatal(" non-constant initializer used on local static variable");
@@ -799,11 +955,32 @@ public:
                 {
                     symbol_table->add(decl->ident,Symbol(decl->ident,DataType::U64,true));
 
-                    if (decl->expr != nullptr)
+                    if (decl->init != nullptr)
                     {
-                        check_expr(decl->expr,symbol_table);
+                        if(decl->init->type == ASTVarInitType::SINGLE)
+                        {
+                            check_expr(((ASTVarSingleInit *)decl->init->init)->expr,symbol_table);
+                        }
+                        else if(decl->init->type == ASTVarInitType::STRUCT)
+                        {
+                            ASTVarStructMember map = ((ASTVarStructInit *)decl->init->init)->members;
+                            
+                            for (auto it = map.table.begin(); it != map.table.end(); ++it)
+                            {
+                                check_expr(it->second,symbol_table);
+                            }
+                            
+                        }
                     }
                 }
+                break;
+            }
+            case ASTDataType::ENUM:
+            {
+                break;
+            }
+            case ASTDataType::STRUCT:
+            {
                 break;
             }
             default:
@@ -1130,7 +1307,7 @@ public:
                 var_expr->add_data_type(symbol_table->get_type(name));
                 var_expr->add_pointer_type(symbol_table->get_pointer_type(name).is_ptr,symbol_table->get_pointer_type(name).base_type,symbol_table->get_pointer_type(name).ptr_no);
 
-                printf("var expr ptr_no  : %d\n",symbol_table->get_pointer_type(name).ptr_no);
+                printf("var expr ptr_no [%s] : %d\n",name.c_str(),symbol_table->get_pointer_type(name).ptr_no);
 
                 expr->add_data_type(var_expr->data_type);
                 expr->add_pointer_type(symbol_table->get_pointer_type(name).is_ptr,symbol_table->get_pointer_type(name).base_type,symbol_table->get_pointer_type(name).ptr_no);
@@ -1245,7 +1422,27 @@ public:
 			{
                 ASTFunctionCallExpr *fn_expr = (ASTFunctionCallExpr *)expr->expr;
                 //fatal(" fatal  -> " + var_expr->ident);
-                std::string name = fn_expr->ident;
+                
+
+                std::string name;
+
+                if(fn_expr->base->type == ASTExpressionType::VARIABLE)
+                {
+                    name = ((ASTVariableExpr *)fn_expr->base)->ident;
+                }
+                else if(fn_expr->base->type == ASTExpressionType::STRUCT_ACCESS)
+                {
+                    //check_expr(fn_expr->base,symbol_table);
+                    name = ((ASTStructAccessExpr *)fn_expr->base)->member;
+                }
+                else if(fn_expr->base->type == ASTExpressionType::STRUCT_PTR_ACCESS)
+                {
+                    //check_expr(fn_expr->base,symbol_table);
+                    name = ((ASTStructPtrAccessExpr *)fn_expr->base)->member;
+                }
+
+                std::cout << "name : " << name << std::endl;
+
                 DataType t_type = symbol_table->get_type(name);
                 TypeFunction f_type = symbol_table->get_val(name);
                 fn_expr->add_data_type(f_type.return_type);

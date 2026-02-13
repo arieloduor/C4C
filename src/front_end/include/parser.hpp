@@ -7,15 +7,15 @@
  * and constructs a fully-formed Abstract Syntax Tree (AST) representing the						*
  * entire source file.																				*
  * The parser operates in a single pass and uses arena allocation for all AST						*
- * nodes, ensuring fast allocation and stable memory throughout compilation.						*
+ * expr1s, ensuring fast allocation and stable memory throughout compilation.						*
  *																									*
- * The root of the produced AST is an ASTProgram node, which contains a list						*
+ * The root of the produced AST is an ASTProgram expr1, which contains a list						*
  * of top-level declarations such as functions, variables, and native bindings.						*
  *																									*
  * Parse responsibilities are:																		*
  * - Validate syntactic correctness of the token stream												*
  * - Enforce grammar structure and operator precedence												*
- * - Construct AST nodes for declarations, statements, and expressions								*
+ * - Construct AST expr1s for declarations, statements, and expressions								*
  * - Report fatal syntax errors and halt compilation on invalid input								*
  *																									*
  *																									*
@@ -106,6 +106,36 @@ public:
 
 
 
+class SymbolTypeTable
+{
+public:
+    std::map<std::string,std::string> table;
+    bool lookup(std::string name) 
+    {
+        if (this->table.find(name) == this->table.end())
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    void add(std::string name,std::string type)
+    {
+        //this->map[name] = symbol;
+        this->table.emplace(name, type);
+    }
+
+    std::string get(std::string name)
+    {
+        return this->table.at(name);
+        //return this->map[name];
+    }
+
+};
+
+
+
 class Parser
 {
 public:
@@ -116,6 +146,7 @@ public:
 	ASTProgram *program;
 	Arena *arena;
 	AggregateTable table;
+	SymbolTypeTable symbol;
 
 	Parser(std::string file_name,std::vector<Tokens> tokens,Arena *arena)
 	{
@@ -201,6 +232,18 @@ public:
 		else if (keyword == "pub")
 		{
 			return TokenType::TOKEN_KEYWORD_PUB;
+		}
+		else if (keyword == "impl")
+		{
+			return TokenType::TOKEN_KEYWORD_IMPL;
+		}
+		else if (keyword == "new")
+		{
+			return TokenType::TOKEN_KEYWORD_NEW;
+		}
+		else if (keyword == "self")
+		{
+			return TokenType::TOKEN_KEYWORD_SELF;
 		}
 		else if (keyword == "struct")
 		{
@@ -386,7 +429,7 @@ public:
 
 	bool is_token(std::string string,int look_ahead = 0)
 	{
-		return is_token_type(string_to_token(string),look_ahead);
+		return is_token_type(string_to_token(string),look_ahead) or is_token_type(keyword_to_token(string),look_ahead);
 	}
 
 	/**
@@ -615,7 +658,7 @@ public:
 	 * Grammar:
 	 *   Program -> Declaration
 	 *
-	 * Produces an ASTProgram node stored in Parser::program.
+	 * Produces an ASTProgram expr1 stored in Parser::program.
 	 */
 
 	void parse_program()
@@ -705,6 +748,12 @@ public:
 				decl = new(mem) ASTDeclaration(ASTDeclarationType::STRUCT,decl_val);
 				break;
 			}
+			case TokenType::TOKEN_KEYWORD_IMPL:
+			{
+				ASTImplDecl *decl_val = parse_impl_decl();		
+				decl = new(mem) ASTDeclaration(ASTDeclarationType::IMPL,decl_val);
+				break;
+			}
 			case TokenType::TOKEN_KEYWORD_NATIVE:
 			{
 				ASTNativeDecl *decl_val3 = parse_native_decl();		
@@ -775,6 +824,118 @@ public:
 
 		return decl;
 	}
+
+
+
+
+	ASTImplDecl *parse_impl_decl(bool is_public = false)
+	{
+		void *mem = alloc(sizeof(ASTImplDecl));
+		ASTImplDecl *decl = new(mem) ASTImplDecl();
+
+		expect_keyword("impl");
+		if (match_identifier())
+		{
+			std::string ident = consume().string;
+			decl->add_ident(ident);
+		}
+
+		expect_symbol(":");
+
+		while (not is_token(":"))
+		{
+			bool is_public = false;
+			if(is_token("pub"))
+			{
+				consume();
+				is_public = true;
+			}
+
+			decl->add_method(parse_method_decl(decl->ident,is_public));
+		}
+
+		expect_symbol(":");
+
+		return decl;
+	}
+
+	/**
+	 * Parses a function declaration.
+	 * The function takes one parameter:
+	 * - is_public -> Indicates whether the function is publicly visible
+	 */
+
+	ASTMethodDecl *parse_method_decl(std::string base,bool is_public = false)
+	{
+		void *mem = alloc(sizeof(ASTMethodDecl));
+		ASTMethodDecl *decl = new(mem) ASTMethodDecl();
+
+		decl->add_public(is_public);
+		bool is_new = false;
+
+		expect_keyword("fn");
+
+		if(is_token("new"))
+		{
+			is_new = true;
+			decl->add_ident(consume().string);
+		}
+		else if (match_identifier())
+		{
+			decl->add_ident(consume().string);
+		}
+
+		expect_symbol("(");
+
+		mem = alloc(sizeof(ASTType));
+		ASTType *type = new(mem) ASTType();
+
+
+		type->add_type(ASTDataType::STRUCT);
+		type->add_ident(base);
+		type->add_ptr(1);
+
+		mem = alloc(sizeof(ASTFunctionArgument));
+		ASTFunctionArgument *arg = new(mem) ASTFunctionArgument(type,"self");
+		decl->add_argument(arg);
+
+		while (not is_token(")"))
+		{
+			ASTFunctionArgument *arg = parse_fn_arg();
+			decl->add_argument(arg);
+
+			if (is_symbol(")"))
+			{
+				break;
+			}
+
+			expect_symbol(",");
+		}
+
+		expect_symbol(")");
+
+		if(not is_new)
+		{
+			expect_symbol("->");
+
+			ASTType *return_type = parse_type();
+			decl->add_return_type(return_type);
+		}
+
+		if ( match_symbol(":"))
+		{
+			ASTBlockStmt *block = parse_block_stmt();
+			decl->add_block(block);
+		}
+		else
+		{
+			fatal("error : function lacks a valid block ");
+		}
+
+		return decl;
+	}
+
+
 
 	/**
 	 * This function parses an enum declaration
@@ -1023,6 +1184,11 @@ public:
 				ident = base;
 				data_type = ASTDataType::ENUM;
 			}
+			else if(this->table.is_struct(base))
+			{
+				ident = base;
+				data_type = ASTDataType::STRUCT;
+			}
 			else
 			{
 				fatal("identifier used as a type");
@@ -1186,15 +1352,74 @@ public:
 			ident = consume().string;
 		}
 
-		ASTExpression *expr = nullptr;
+		void *init = nullptr;
+		ASTVarInitType init_type;
+
 		if (is_extern == false)
 		{
 			expect_symbol("=");
-			expr = parse_expr(0);
+
+			if(type->type == ASTDataType::STRUCT and type->ptr == 0)
+			{
+				void *mem = alloc(sizeof(ASTVarStructInit));
+				ASTVarStructInit *struct_init = new(mem)ASTVarStructInit();
+				init_type = ASTVarInitType::STRUCT;
+
+				std::string struct_name = consume().string;
+				if(type->ident != struct_name)
+				{
+					fatal("unmatching var declarsation with struct init");
+				}
+
+				struct_init->add_ident(struct_name);
+
+				expect_symbol(":");
+
+				while(true)
+				{
+					if(is_token(":"))
+					{
+						break;
+					}
+
+					expect_symbol(".");
+					if(match_identifier())
+					{
+						std::string member = consume().string;
+						expect_symbol("=");
+						ASTExpression *member_expr = parse_expr(0);
+						struct_init->add_member(member,member_expr);
+						expect_symbol(",");
+					}
+					else
+					{
+						fatal("expected an identifier in struct init(compound)");
+					}
+				}
+
+				init = struct_init;
+
+				expect_symbol(":");
+			}
+			else
+			{
+				void *mem = alloc(sizeof(ASTVarSingleInit));
+				ASTVarSingleInit *single_init = new(mem) ASTVarSingleInit(parse_expr(0));
+				init_type = ASTVarInitType::SINGLE;
+				init = single_init;
+			}
 		}
 
-		void *mem = alloc(sizeof(ASTVarDecl));
-		ASTVarDecl *decl = new(mem) ASTVarDecl(type,ident,expr,is_public,is_static,is_extern);
+		void *mem = alloc(sizeof(ASTVarInit));
+		ASTVarInit *var_init = new(mem) ASTVarInit(init_type,init);
+
+		mem = alloc(sizeof(ASTVarDecl));
+		ASTVarDecl *decl = new(mem) ASTVarDecl(type,ident,var_init,is_public,is_static,is_extern);
+
+		if(type->type == ASTDataType::STRUCT)
+		{
+			this->symbol.add(decl->ident,type->ident);
+		}
 
 		return decl;
 	}
@@ -1561,7 +1786,7 @@ public:
 
 	ASTExpression *parse_expr(int min_prec)
 	{
-		ASTExpression *lhs = parse_factor();
+		ASTExpression *lhs = parse_unary();
 
 		while ( is_binary() and get_precedence() >= min_prec)
 		{
@@ -1591,6 +1816,188 @@ public:
 
 		return lhs;
 	}
+
+
+	ASTExpression* parse_unary()
+	{
+		if (is_unary())
+		{
+			ASTUnaryOperator op = get_unary_op(consume());
+			ASTExpression* operand = parse_unary();  // recursive!
+
+			void *mem = alloc(sizeof(ASTUnaryExpr));
+			ASTUnaryExpr *expr1 = new(mem) ASTUnaryExpr(op,operand);
+
+			mem = alloc(sizeof(ASTExpression));
+			ASTExpression *expr = new(mem) ASTExpression(ASTExpressionType::UNARY,expr1);
+			return expr;
+		}
+
+		return parse_postfix();
+	}
+
+
+	ASTExpression* parse_postfix()
+	{
+		ASTExpression* expr = parse_factor();
+
+		while (true)
+		{
+			if (is_token("."))
+			{
+				consume(); // eat '.'
+
+				if(expr->type == ASTExpressionType::VARIABLE and this->table.lookup(((ASTVariableExpr *)expr->expr)->ident) and this->table.is_enum(((ASTVariableExpr *)expr->expr)->ident))
+				{
+					void *mem = alloc(sizeof(ASTEnumAccessExpr));
+					ASTEnumAccessExpr *expr1 = new(mem) ASTEnumAccessExpr(((ASTVariableExpr *)expr->expr)->ident,consume().string);
+					mem = alloc(sizeof(ASTExpression));
+					expr = new(mem) ASTExpression(ASTExpressionType::ENUM_ACCESS,expr1);
+				}
+				else
+				{
+					if (!is_identifier())
+						fatal("expected field name after '.'");
+
+					std::string field = consume().string;
+
+					void* mem = alloc(sizeof(ASTStructAccessExpr));
+					ASTStructAccessExpr* expr1 = new(mem) ASTStructAccessExpr(expr, field);
+
+					std::string base_type;
+
+					if(expr->type == ASTExpressionType::VARIABLE)
+					{
+						std::string var = ((ASTVariableExpr *)expr->expr)->true_ident;
+						if(this->symbol.lookup(var) == true)
+						{
+							base_type = this->symbol.get(var);	
+						}
+					}
+
+					expr1->add_base_type(base_type);
+
+					mem = alloc(sizeof(ASTExpression));
+					expr = new(mem) ASTExpression(ASTExpressionType::STRUCT_ACCESS,expr1);
+				}
+				
+			}
+			else if (is_token("->"))
+			{
+				consume(); // eat '->'
+
+				
+				if (!is_identifier())
+					fatal("expected field name after '->'");
+
+				std::string field = consume().string;
+
+				void* mem = alloc(sizeof(ASTStructPtrAccessExpr));
+				ASTStructPtrAccessExpr* expr1 = new(mem) ASTStructPtrAccessExpr(expr, field);
+
+				mem = alloc(sizeof(ASTExpression));
+				expr = new(mem) ASTExpression(ASTExpressionType::STRUCT_PTR_ACCESS,expr1);
+				
+			}
+			else if (is_token("++"))
+			{
+				consume();
+
+				void* mem = alloc(sizeof(ASTUnaryExpr));
+				ASTUnaryOperator op = ASTUnaryOperator::POST_INCREMENT;
+				ASTUnaryExpr* expr1 = new(mem) ASTUnaryExpr(op,expr);
+
+				mem = alloc(sizeof(ASTExpression));
+				expr = new(mem) ASTExpression(ASTExpressionType::UNARY, expr1);
+			}
+			else if (is_token("--"))
+			{
+				consume();
+
+				void* mem = alloc(sizeof(ASTUnaryExpr));
+				ASTUnaryOperator op = ASTUnaryOperator::POST_DECREMENT;
+				ASTUnaryExpr* expr1 = new(mem) ASTUnaryExpr(op,expr);
+
+				mem = alloc(sizeof(ASTExpression));
+				expr = new(mem) ASTExpression(ASTExpressionType::UNARY, expr1);
+			}
+			else if (is_token("@"))
+			{
+				expect_symbol("@");
+
+				std::string ident;
+
+				if(is_identifier())
+				{
+					ident = consume().string;
+				}
+				else
+				{
+					fatal("expected an identifier after @");
+				}
+
+				if(ident == "read")
+				{
+					expect_symbol("(");
+					expect_symbol(")");
+					void *mem = alloc(sizeof(ASTPtrReadExpr));
+					ASTPtrReadExpr *expr2 = new(mem) ASTPtrReadExpr(expr);
+	
+					mem = alloc(sizeof(ASTExpression));
+					expr = new(mem) ASTExpression(ASTExpressionType::PTR_READ,expr2);
+				}
+				else if(ident == "write")
+				{
+					expect_symbol("(");
+					void *mem = alloc(sizeof(ASTPtrWriteExpr));
+					ASTPtrWriteExpr *expr2 = new(mem) ASTPtrWriteExpr(expr,parse_expr(0));
+	
+					expect_symbol(")");
+
+					mem = alloc(sizeof(ASTExpression));
+					expr = new(mem) ASTExpression(ASTExpressionType::PTR_WRITE,expr2);
+				}
+				else
+				{
+					fatal("invalid @ intrinsic");
+				}
+			}
+			else if (is_token("("))
+			{
+				void *mem = alloc(sizeof(ASTFunctionCallExpr));
+				ASTFunctionCallExpr *expr1 = new(mem) ASTFunctionCallExpr();
+
+
+				expect_symbol("(");
+
+				expr1->add_base(expr);
+
+				while (not is_token(")"))
+				{
+					expr1->add_arg(parse_expr(0));
+
+					if (is_token(")"))
+					{
+						break;
+					}
+
+					expect_symbol(",");
+				}
+
+				expect_symbol(")");
+
+				mem = alloc(sizeof(ASTExpression));
+				expr = new(mem) ASTExpression(ASTExpressionType::FUNCTION_CALL,expr1);
+			}
+			else
+			{
+				break;
+			}
+		}
+
+		return expr;
+	}
+
 
 	/**
 	 * Parses the smallest unit of an expression (literals, identifiers,
@@ -1639,14 +2046,6 @@ public:
 			mem = alloc(sizeof(ASTExpression));
 			expr = new(mem) ASTExpression(ASTExpressionType::STRING,string_expr);
 		}
-		else if(is_unary())
-		{
-			void *mem = alloc(sizeof(ASTUnaryExpr));
-			ASTUnaryOperator op = get_unary_op(consume());
-			ASTUnaryExpr *expr1 = new(mem) ASTUnaryExpr(op,parse_factor());
-			mem = alloc(sizeof(ASTExpression));
-			expr = new(mem) ASTExpression(ASTExpressionType::UNARY,expr1);
-		}
 		else if (is_token_type(TokenType::TOKEN_LITERAL_FLOAT))
 		{
 			Tokens token = consume();
@@ -1682,7 +2081,6 @@ public:
 				expr = new(mem) ASTExpression(ASTExpressionType::F32, f32_expr);
 			}
 		}
-
 		else if (is_token_string("cast"))
 		{
 			expect_keyword("cast");
@@ -1741,120 +2139,19 @@ public:
 		}
 		else if(is_identifier())
 		{
-			if (is_token("(",1))
-			{
-				void *mem = alloc(sizeof(ASTFunctionCallExpr));
-				ASTFunctionCallExpr *expr1 = new(mem) ASTFunctionCallExpr();
+			void *mem = alloc(sizeof(ASTVariableExpr));
+			ASTVariableExpr *expr1 = new(mem) ASTVariableExpr(consume().string);
 
-				expr1->add_ident(consume().string);
-				expect_symbol("(");
+			mem = alloc(sizeof(ASTExpression));
+			expr = new(mem) ASTExpression(ASTExpressionType::VARIABLE,expr1);
+		}
+		else if(is_token("self"))
+		{
+			void *mem = alloc(sizeof(ASTSelfExpr));
+			ASTSelfExpr *expr1 = new(mem) ASTSelfExpr(consume().string);
 
-				while (not is_token(")"))
-				{
-					expr1->add_arg(parse_expr(0));
-
-					if (is_token(")"))
-					{
-						break;
-					}
-
-					expect_symbol(",");
-				}
-
-				expect_symbol(")");
-
-				mem = alloc(sizeof(ASTExpression));
-				expr = new(mem) ASTExpression(ASTExpressionType::FUNCTION_CALL,expr1);
-			}/*
-			else if(is_token("@",1))
-			{
-
-				std::vector<std::string> intrinsics;
-				intrinsics.push_back(consume().string);
-
-				void *mem = alloc(sizeof(ASTVariableExpr));
-				ASTVariableExpr *expr1 = new(mem) ASTVariableExpr(consume().string);
-
-
-				while (is_token("@"))
-				{
-					expect_symbol("@");					
-					if (match_identifier())
-					{
-						intrinsics.push_back(consume().string);
-						expect_symbol("(")
-					}
-					else
-					{
-						fatal("expected an identifier after ::");
-					}
-				}
-
-				mem = alloc(sizeof(ASTExpression));
-				expr = new(mem) ASTExpression(ASTExpressionType::RESOLUTION,expr1);
-			}*/
-			else if(is_token(".",1))
-			{
-				std::string base = consume().string;
-				if(this->table.is_enum(base))
-				{
-					expect_symbol(".");
-					void *mem = alloc(sizeof(ASTEnumAccessExpr));
-					ASTEnumAccessExpr *expr1 = new(mem) ASTEnumAccessExpr(base,consume().string);
-					mem = alloc(sizeof(ASTExpression));
-					expr = new(mem) ASTExpression(ASTExpressionType::ENUM_ACCESS,expr1);
-				}
-				else
-				{
-					fatal("invalid use of . operator");
-				}
-
-			}
-			else
-			{
-				void *mem = alloc(sizeof(ASTVariableExpr));
-				ASTVariableExpr *expr1 = new(mem) ASTVariableExpr(consume().string);
-
-				mem = alloc(sizeof(ASTExpression));
-				expr = new(mem) ASTExpression(ASTExpressionType::VARIABLE,expr1);
-
-
-				while(is_token("@"))
-				{
-					expect_symbol("@");
-
-					std::string ident;
-
-					if(is_identifier())
-					{
-						ident = consume().string;
-					}
-
-					if(ident == "read")
-					{
-						expect_symbol("(");
-						expect_symbol(")");
-						void *mem = alloc(sizeof(ASTPtrReadExpr));
-						ASTPtrReadExpr *expr2 = new(mem) ASTPtrReadExpr(expr);
-		
-						mem = alloc(sizeof(ASTExpression));
-						expr = new(mem) ASTExpression(ASTExpressionType::PTR_READ,expr2);
-					}
-					else if(ident == "write")
-					{
-						expect_symbol("(");
-						void *mem = alloc(sizeof(ASTPtrWriteExpr));
-						ASTPtrWriteExpr *expr2 = new(mem) ASTPtrWriteExpr(expr,parse_expr(0));
-		
-						expect_symbol(")");
-
-						mem = alloc(sizeof(ASTExpression));
-						expr = new(mem) ASTExpression(ASTExpressionType::PTR_WRITE,expr2);
-					}
-				}
-
-				
-			}
+			mem = alloc(sizeof(ASTExpression));
+			expr = new(mem) ASTExpression(ASTExpressionType::SELF,expr1);
 		}
 		else
 		{

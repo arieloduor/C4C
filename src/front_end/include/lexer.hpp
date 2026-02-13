@@ -440,6 +440,10 @@ private:
 		{
 			add_token(TokenType::TOKEN_KEYWORD_IF,buf);
 		}
+		else if (match_keyword(buf,"impl"))
+		{
+			add_token(TokenType::TOKEN_KEYWORD_IMPL,buf);
+		}
 		else if (match_keyword(buf,"loop"))
 		{
 			add_token(TokenType::TOKEN_KEYWORD_LOOP,buf);
@@ -455,6 +459,10 @@ private:
 		else if (match_keyword(buf,"return"))
 		{
 			add_token(TokenType::TOKEN_KEYWORD_RETURN,buf);
+		}
+		else if (match_keyword(buf,"self"))
+		{
+			add_token(TokenType::TOKEN_KEYWORD_SELF,buf);
 		}
 		else if (match_keyword(buf,"struct"))
 		{
